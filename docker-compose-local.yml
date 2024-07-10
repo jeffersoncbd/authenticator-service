@@ -1,0 +1,10 @@
+services:
+  authenticator_postgres:
+    image: postgres:16
+    container_name: authenticator_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRESQL_USER}
+      POSTGRES_PASSWORD: ${POSTGRESQL_PASS}
+      POSTGRES_DB: ${POSTGRESQL_NAME}
+    ports:
+      - ${POSTGRESQL_PORT}:5432
