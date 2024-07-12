@@ -15,6 +15,7 @@ import (
 	"path"
 	"strings"
 
+	openapi_types "github.com/discord-gophers/goapi-gen/types"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -27,9 +28,9 @@ type Error struct {
 
 // User defines model for User.
 type User struct {
-	Email    string `json:"email" validate:"required,email"`
-	Name     string `json:"name" validate:"required,min=3"`
-	Password string `json:"password" validate:"required,min=8"`
+	Email    openapi_types.Email `json:"email" validate:"required,email"`
+	Name     string              `json:"name" validate:"required,min=3"`
+	Password string              `json:"password" validate:"required,min=8"`
 }
 
 // PostUsersJSONBody defines parameters for PostUsers.
@@ -276,15 +277,15 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/6xTPW4bTQy9yoLfV64sOU4RLJDCDly4MwK4sl3QO5Q0zs5PSK5iRdjDBClygpxAFws4",
-	"K0H+SWM41RDE4zzy8XEDbQo5RYoq0GxA2iUFLOE5c2IL0DmvPkXsLjllYvUk0MyxE6ohP0ptYE7k7rD9",
-	"YrGuM0EDouzjAoahBqavvWdy0FwfkLf1Hpnu7qlVGGq4EnotMwX03UvaGh4mizShB2WcKC4KdoWdd6gG",
-	"27dUj/XWZcRAb/go+PjxpHyUUeRbYleESRxQoTkk67cQfIDhuaCl7XqnwyPyl/papY/zZASOpGWfTWRo",
-	"4FwytX7uW9z+2v4mqRxWp5cXVUbGKlW2rwlFZ2nM3Qj7maobOO11SVF9i5r4BgxAITOJvbFfUbB5vXbW",
-	"xxMw1LAilpH/+Gh2NDMDpEwRs4cGTkrK5tFlkWTaC3GJchK112yANsGFgwYuk+hVgYz6kOhZcmsDtikq",
-	"xVKDufRvVdN7MfK99y36n2kODfw3PRzHdHcZ0+LNZ+or91QSklOU0ZDvZsev4qTYh7LHvutsafbinQlW",
-	"fjfCp8v6bGyiWK3wu0dT7f1s9s/GHK//L7Rn6KqdrsXl0oeAvIYGPqFDUcaqD1VMq1T10m9/sE+2+2Lo",
-	"axiXdzsMw/AnAAD//8heaW97BAAA",
+	"H4sIAAAAAAAC/6xUzW4TQQx+lZXhuGlSygGtxKFFPfRWIfXU9uDsOMmUnR/GntAQ7cMgDjwBT5AXQ55N",
+	"UpJyoILTWNbn+T5/9swa2uBi8OSFoVkDtwtyWMLLlELSAI2xYoPH7jqFSEksMTQz7JhqiL+l1jAjMlNs",
+	"P2ksq0jQAEuyfg59X0Oiz9kmMtDcPiHv6x0yTB+oFehruGF6KTM5tF2REJJDgWabqY901PA4mocRPUrC",
+	"keC8FC+xswZFYTuN9VCusj06et7QX1/krH9/Vi6KyPwlJHMgc5+s/4XgHfTHDhfZ9d6GPc9zw7XS+llQ",
+	"AkPcJhvVdWjgkiO1dmZb3PzY/CSuDFbn11dVxIRVqHSAI/JG0xi7AfY9VHdwnmVBXmyLEtIdKIBcTMR6",
+	"+rwkp/1a6VTHARhqWFLigf/0ZHIy0Y0IkTxGCw2clZT2I4tiyTgzpRLFwKKn7gVqB1cGGrgOLDcFMvhD",
+	"LBfBrBTYBi/kSw3Gol+rxg+s5LvHoNHrRDNo4NX46bWMt09lXJb1yH1JmUqCY/A8bOibyemLOMlnV+aY",
+	"u06HpidO1bByuxIeDuujsrFgtcSvFtW1t5PJf2tz+A7+QHuBptr6Wracs3OYVtDABzTIkrDKrvJhGarM",
+	"efMt2aCzLwt9C8Pw7vu+738FAAD//2CPctGMBAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

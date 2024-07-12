@@ -18,6 +18,7 @@
           },
           "email": {
             "type": "string",
+            "format": "email",
             "x-go-extra-tags": {
               "validate": "required,email"
             }

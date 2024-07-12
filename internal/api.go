@@ -7,8 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
+	"github.com/go-playground/locales/pt_BR"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	pt_br_translations "github.com/go-playground/validator/v10/translations/pt_BR"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -19,17 +23,44 @@ type store interface {
 	InsertUser(context.Context, postgresql.InsertUserParams) error
 }
 
+type Validator struct {
+	validate	*validator.Validate
+	translator	ut.Translator
+}
+func (v Validator) Translate(err error) string {
+	var errorMessages []string
+	errs := err.(validator.ValidationErrors)
+	for _, e := range errs {
+		errorMessages = append(errorMessages, e.Translate(v.translator))
+	}
+	return strings.Join(errorMessages, ", ")
+}
+
 type API struct{
 	store		store
 	logger		*zap.Logger
-	validator	*validator.Validate
+	validator	Validator
 }
 
 func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
+	pt_br := pt_BR.New()
+	universal_translator := ut.New(pt_br, pt_br)
+
+	translator, err := universal_translator.GetTranslator("pt_BR")
+	if !err {
+        logger.Fatal("Falha ao carregar tradutores")
+    }
+
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	pt_br_translations.RegisterDefaultTranslations(validate, translator)
+
 	return API{
         store: postgresql.New(pool),
         logger: logger,
-		validator: validator.New(validator.WithRequiredStructEnabled()),
+		validator: Validator{
+			validate: validate,
+			translator: translator,
+		},
     }
 }
 
@@ -43,21 +74,21 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
         return spec.PostUsersJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
     }
 
-	if err := api.validator.Struct(body); err != nil {
-		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+	if err := api.validator.validate.Struct(body); err != nil {
+		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
 	}
 
-	_, err = api.store.GetUser(r.Context(), body.Email)
+	_, err = api.store.GetUser(r.Context(), string(body.Email))
 	if err == nil {
-        return spec.PostUsersJSON400Response(spec.Error{Feedback: "Usuário já cadastrado"})
+        return spec.PostUsersJSON400Response(spec.Error{Feedback: "Já existe usuário cadastrado com este e-mail"})
     }
 	if !errors.Is(err, pgx.ErrNoRows) {
-		api.logger.Error("Falha ao consultar email", zap.Error(err), zap.String("email", body.Email))
+		api.logger.Error("Falha ao consultar email", zap.Error(err), zap.String("email", string(body.Email)))
 		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
 	}
 
 	err = api.store.InsertUser(r.Context(), postgresql.InsertUserParams{
-		Email:    body.Email,
+		Email:    string(body.Email),
 		Name:     body.Name,
 		Password: body.Password,
 	})
