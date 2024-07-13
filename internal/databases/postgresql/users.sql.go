@@ -7,10 +7,12 @@ package postgresql
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getUser = `-- name: GetUser :one
-SELECT email, name, password FROM users
+SELECT email, name, password, status FROM users
 WHERE
     email = $1
 `
@@ -18,7 +20,12 @@ WHERE
 func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, email)
 	var i User
-	err := row.Scan(&i.Email, &i.Name, &i.Password)
+	err := row.Scan(
+		&i.Email,
+		&i.Name,
+		&i.Password,
+		&i.Status,
+	)
 	return i, err
 }
 
@@ -40,12 +47,13 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT name, email FROM users
+SELECT name, email, status FROM users
 `
 
 type ListUsersRow struct {
-	Name  string
-	Email string
+	Name   string
+	Email  string
+	Status pgtype.Text
 }
 
 func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
@@ -57,7 +65,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 	var items []ListUsersRow
 	for rows.Next() {
 		var i ListUsersRow
-		if err := rows.Scan(&i.Name, &i.Email); err != nil {
+		if err := rows.Scan(&i.Name, &i.Email, &i.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

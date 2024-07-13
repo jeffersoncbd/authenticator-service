@@ -21,6 +21,15 @@ import (
 	"github.com/go-chi/render"
 )
 
+// Defines values for UserDataStatus.
+var (
+	UnknownUserDataStatus = UserDataStatus{}
+
+	UserDataStatusActive = UserDataStatus{"active"}
+
+	UserDataStatusInactive = UserDataStatus{"inactive"}
+)
+
 // Error defines model for Error.
 type Error struct {
 	Feedback string `json:"feedback"`
@@ -35,8 +44,42 @@ type User struct {
 
 // UserData defines model for UserData.
 type UserData struct {
-	Email openapi_types.Email `json:"email"`
-	Name  string              `json:"name"`
+	Email  openapi_types.Email `json:"email"`
+	Name   string              `json:"name"`
+	Status UserDataStatus      `json:"status"`
+}
+
+// UserDataStatus defines model for UserData.Status.
+type UserDataStatus struct {
+	value string
+}
+
+func (t *UserDataStatus) ToValue() string {
+	return t.value
+}
+func (t UserDataStatus) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.value)
+}
+func (t *UserDataStatus) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	return t.FromValue(value)
+}
+func (t *UserDataStatus) FromValue(value string) error {
+	switch value {
+
+	case UserDataStatusActive.value:
+		t.value = value
+		return nil
+
+	case UserDataStatusInactive.value:
+		t.value = value
+		return nil
+
+	}
+	return fmt.Errorf("unknown enum value: %v", value)
 }
 
 // PostUsersJSONBody defines parameters for PostUsers.
@@ -315,16 +358,17 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7yUT04cSwzGr1Lye8seZni8SFFLWUCCIqQsUCJWwMJ0eYYi3VWFXT1hgvowURY5QU7A",
-	"xSJXzzQwAygof1Zdsj6XP/9c7muoQhODJ58EymuQ6pwazMd95sB6QGtdcsFjfcghEidHAuUUa6EC4p3Q",
-	"NUyJ7BlWH/WcFpGgBEns/Ay6rgCmy9YxWSiPb5WnxUoZzi6oStAVcCT03MrUoKuzhcANJiiXkWLNRwFX",
-	"o1kY0VViHCWc5eQ51s5iUtnKY9Gnq22PDW029NMXNc6/2skXRRT5FNjeszkEi18p8BK6dcLZdjFgGOo8",
-	"BvwNJvxD0B+F+KTnTaMqd34a9CJLUrGL6hRK2JdIlZu6Cm++3XwnMRbN7uGBichogtGXNiJvNYyx7mVf",
-	"gzmB3Tadk0+uwhT4BFRATWQS/fp2To1241KtPu6JoYA5sfT1t7cmWxPtM0TyGB2UsJNDCj6dZ1rjVojz",
-	"aUZJP4oStYEDCyW8pXSUBYpEYvDSQ/5vMtFPFXwin/Mw5hY0c3whWn+1uHpyiZqc+C/TFEr4Z3y74uPl",
-	"fo+HgXcDZGTGRc/4Ptt3ThIaG8S00t58YRfEVGhREqMNole8eKbHp6z1/50HfBz4ROyxNh+I58RmJSxA",
-	"2qZBXgxeU1C3dw3rEPMKHUM/hVPdxyAPzOEwyJ1BXLYkaS/YxW/rL//c1rY1cUvdxty3N9/5e1Voi3P8",
-	"7PL0/v8b6PfQmiWLNeCvlw/BtI3xYR4G5A8Q77ruRwAAAP//CqPBt3AGAAA=",
+	"H4sIAAAAAAAC/7xU3U4cOwx+lcjnXM6yy+FUqkbqBbSoQuoFasUVcGEm3iV0JwmxZ8oWzcNUvegT9Al4",
+	"scqZ3QF2oS3qz1Ws6LP9+fucXEMV6hg8eWEor4Grc6oxh/sphaQBWuvEBY/zwxQiJXHEUE5xzlRAvHN1",
+	"DVMie4bVe41lEQlKYEnOz6DrCkh02bhEFsrjW+RpsUKGswuqBLoCjpie2plqdPNMIaQaBcrlTbHGo4Cr",
+	"0SyM6EoSjgRnObnFubMoCltxLPp0pe2xps2BfrpQ7fyLnVwoIvOHkOw9msNl8SsNnkO3rnCmXQwyDH0e",
+	"E/wVCv4h0R8VsSuABaXpq/mmVuJYiWuVuvPL8LT4wTatzbqsuTmp5jk/DdrOElfJRR0VStjnSJWbugpv",
+	"vtx8JTYWze7hgYmY0ASjqzoib/Ua47yHfQ7mBHYbOScvrkIJ6QQUQHVMxHr6pqVa5XAyVx73wFBAS4n7",
+	"/ttbk62J6hEieYwOStjJV+qcnGeBxg1TytGMRA/1AnWAAwslvCY5ygDVhmPw3Lv032SiRxW8kM95GPMI",
+	"mjm+YO2/evkaOaE6J/6baAol/DO+/SPGyw9iPGxMN4iMKeGi1/i+tm8cCxob2DTc3HxKLrCp0CJLQhtY",
+	"Szx7IsfvUes/rgd4HHih5HFu3lFqKZkVsABu6hrTYuAqQdneJawm5jd4DL0Lp/qgAz/gw2HgO0ZcNsSy",
+	"F+zit82Xf8e15y6poW7D9+3NPX+rCB2xxY8uu/f/35B+D61ZarEm+MvlIpimNj60YZD8AcW7rvsWAAD/",
+	"/yU+5O6xBgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -70,9 +70,12 @@ func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
 
     var users []spec.UserData
     for _, row := range rows {
+		status := spec.UserDataStatus{}
+		status.FromValue(row.Status.String)
         users = append(users, spec.UserData{
             Name:  row.Name,
             Email: openapi_types.Email(row.Email),
+			Status: status,
         })
     }
 

@@ -1,5 +1,5 @@
 -- name: ListUsers :many
-SELECT name, email FROM users;
+SELECT name, email, status FROM users;
 
 -- name: GetUser :one
 SELECT * FROM users

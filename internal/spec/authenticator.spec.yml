@@ -37,9 +37,15 @@ components:
         email:
           type: string
           format: email
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
       required:
         - name
         - email
+        - status
       additionalProperties: false
     Error:
       type: object

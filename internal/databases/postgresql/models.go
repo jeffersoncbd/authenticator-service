@@ -4,8 +4,13 @@
 
 package postgresql
 
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
 type User struct {
 	Email    string
 	Name     string
 	Password string
+	Status   pgtype.Text
 }
