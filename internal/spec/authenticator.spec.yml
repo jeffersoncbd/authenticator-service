@@ -28,7 +28,7 @@ components:
           type: string
           format: password
           x-go-extra-tags:
-            validate: required,min=8
+            validate: required,min=8,max=32
       required:
         - name
         - email

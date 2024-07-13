@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Validator struct {
@@ -106,10 +107,15 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
 	}
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err!= nil {
+        api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
+        return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
+    }
 	err = api.store.InsertUser(r.Context(), postgresql.InsertUserParams{
 		Email:    string(body.Email),
 		Name:     body.Name,
-		Password: body.Password,
+		Password: string(hash),
 	})
 	if err!= nil {
         api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
