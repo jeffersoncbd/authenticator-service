@@ -1,0 +1,67 @@
+openapi: 3.0.0
+info:
+  title: Authenticator
+  description: >-
+    Especificações da API para o back-end da aplicação "Authenticator" da
+    empresa emnuvem
+  version: 1.0.0
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+          x-go-extra-tags:
+            validate: required,min=3
+        email:
+          type: string
+          format: email
+          x-go-extra-tags:
+            validate: required,email
+        password:
+          type: string
+          format: password
+          x-go-extra-tags:
+            validate: required,min=8
+      required:
+        - name
+        - email
+        - password
+      additionalProperties: false
+    Error:
+      type: object
+      properties:
+        feedback:
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
+paths:
+  /users:
+    post:
+      summary: Cadastra um novo usuário
+      tags:
+        - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+        required: true
+      parameters: []
+      responses:
+        "201":
+          description: Resposta vazia
+          content:
+            application/json:
+              schema:
+                enum:
+                  - "null"
+                nullable: true
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

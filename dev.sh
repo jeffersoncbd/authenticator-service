@@ -6,7 +6,7 @@ set +o allexport
 
 docker compose --env-file .env -f docker-compose-local.yml up -d
 
-goapi-gen --package=spec --out internal/spec/authenticator.gen.spec.go internal/spec/authenticator.spec.json
+goapi-gen --package=spec --out internal/spec/authenticator.gen.spec.go internal/spec/authenticator.spec.yml
 printf " \033[0;32m✔\033[0m API Specs \n"
 
 tern migrate --migrations internal/databases/postgresql/migrations --config internal/databases/postgresql/migrations/tern.conf
