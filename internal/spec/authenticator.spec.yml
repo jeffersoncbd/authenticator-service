@@ -29,6 +29,18 @@ components:
         - email
         - password
       additionalProperties: false
+    UserData:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+      required:
+        - name
+        - email
+      additionalProperties: false
     Error:
       type: object
       properties:
@@ -37,28 +49,36 @@ components:
       required:
         - feedback
       additionalProperties: false
+
 paths:
   /users:
+    get:
+      summary: Lista todos os usuários
+      tags:
+        - users
+      responses:
+        "200":
+          description: Lista dos usuários cadastrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserData"
+
     post:
       summary: Cadastra um novo usuário
       tags:
         - users
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/User"
-        required: true
-      parameters: []
       responses:
         "201":
           description: Resposta vazia
-          content:
-            application/json:
-              schema:
-                enum:
-                  - "null"
-                nullable: true
         "400":
           description: Bad request
           content:

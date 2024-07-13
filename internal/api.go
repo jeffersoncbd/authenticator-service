@@ -64,6 +64,12 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
     }
 }
 
+// Lista todos os usuários
+// (GET /users)
+func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
+	panic("not implemented") // TODO: Implement
+}
+
 // Cadastra um novo usuário
 // (POST /users)
 func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
@@ -97,5 +103,5 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
         return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
     }
 
-	return spec.PostUsersJSON201Response(nil)
+	return nil
 }

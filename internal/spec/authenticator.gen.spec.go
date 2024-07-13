@@ -33,6 +33,12 @@ type User struct {
 	Password string              `json:"password" validate:"required,min=8"`
 }
 
+// UserData defines model for UserData.
+type UserData struct {
+	Email openapi_types.Email `json:"email"`
+	Name  string              `json:"name"`
+}
+
 // PostUsersJSONBody defines parameters for PostUsers.
 type PostUsersJSONBody User
 
@@ -85,12 +91,12 @@ func (resp *Response) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.Encode(resp.body)
 }
 
-// PostUsersJSON201Response is a constructor method for a PostUsers response.
+// GetUsersJSON200Response is a constructor method for a GetUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostUsersJSON201Response(body interface{}) *Response {
+func GetUsersJSON200Response(body []UserData) *Response {
 	return &Response{
 		body:        body,
-		Code:        201,
+		Code:        200,
 		contentType: "application/json",
 	}
 }
@@ -107,6 +113,9 @@ func PostUsersJSON400Response(body Error) *Response {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Lista todos os usuários
+	// (GET /users)
+	GetUsers(w http.ResponseWriter, r *http.Request) *Response
 	// Cadastra um novo usuário
 	// (POST /users)
 	PostUsers(w http.ResponseWriter, r *http.Request) *Response
@@ -116,6 +125,24 @@ type ServerInterface interface {
 type ServerInterfaceWrapper struct {
 	Handler          ServerInterface
 	ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request, err error)
+}
+
+// GetUsers operation middleware
+func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.GetUsers(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
 }
 
 // PostUsers operation middleware
@@ -251,6 +278,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	}
 
 	r.Route(options.BaseURL, func(r chi.Router) {
+		r.Get("/users", wrapper.GetUsers)
 		r.Post("/users", wrapper.PostUsers)
 	})
 	return r
@@ -277,15 +305,16 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/6xUzW4TQQx+lZXhuGlSygGtxKFFPfRWIfXU9uDsOMmUnR/GntAQ7cMgDjwBT5AXQ55N",
-	"UpJyoILTWNbn+T5/9swa2uBi8OSFoVkDtwtyWMLLlELSAI2xYoPH7jqFSEksMTQz7JhqiL+l1jAjMlNs",
-	"P2ksq0jQAEuyfg59X0Oiz9kmMtDcPiHv6x0yTB+oFehruGF6KTM5tF2REJJDgWabqY901PA4mocRPUrC",
-	"keC8FC+xswZFYTuN9VCusj06et7QX1/krH9/Vi6KyPwlJHMgc5+s/4XgHfTHDhfZ9d6GPc9zw7XS+llQ",
-	"AkPcJhvVdWjgkiO1dmZb3PzY/CSuDFbn11dVxIRVqHSAI/JG0xi7AfY9VHdwnmVBXmyLEtIdKIBcTMR6",
-	"+rwkp/1a6VTHARhqWFLigf/0ZHIy0Y0IkTxGCw2clZT2I4tiyTgzpRLFwKKn7gVqB1cGGrgOLDcFMvhD",
-	"LBfBrBTYBi/kSw3Gol+rxg+s5LvHoNHrRDNo4NX46bWMt09lXJb1yH1JmUqCY/A8bOibyemLOMlnV+aY",
-	"u06HpidO1bByuxIeDuujsrFgtcSvFtW1t5PJf2tz+A7+QHuBptr6Wracs3OYVtDABzTIkrDKrvJhGarM",
-	"efMt2aCzLwt9C8Pw7vu+738FAAD//2CPctGMBAAA",
+	"H4sIAAAAAAAC/7SUwU4bTQzHX2Xl7ztuSCg9VCv1AC2qkHpAlTgBB7PjhKHZ8TD2pqRoH6bqoU/QJ+DF",
+	"Ks+GBRKgRVVPO7L+Hv/983ivoeYmcqCgAtU1SH1ODebjfkqc7IDOefUccH6YOFJSTwLVFOdCJcR7oWuY",
+	"ErkzrD/bWZeRoALR5MMMuq6ERJetT+SgOr5Tnpa3Sj67oFqhK+FI6KWVqUE/zxY4NahQrSLlmo8SrkYz",
+	"HtGVJhwpznLyAufeoZrs1mPZp5vtgA1tNvTHFzU+vN3JF0UU+cLJPbA5BMu/KfAGunXC2XY5YBjqPAX8",
+	"PSr+I+hPQnzW86ZRk/swZbvIkdTJR3MKFexLpNpPfY03P25+khQOi93DgyJiwoILe2kjCs7CGOe97DsX",
+	"J7Db6jkF9TUqpxMwATUxkdg3tAtqrBuvc/PxQAwlLChJX397a7I1sT45UsDooYKdHDLwep5pjVuhlE8z",
+	"UvsYSrQGDhxU8IH0KAsMiUQO0kN+NZnYp+agFHIextyCZY4vxOrfLq6dvFKTE/9PNIUK/hvfrfh4td/j",
+	"YeDdABlTwmXP+CHbj14UC8dStNLefEuepajRoWhCx5KHKG3TYFoOamXT308xjPkRH0PP4dQ2guUREocs",
+	"91BctiS6x275Igq/a359XzS11G2Q3958aZ9MYS0u8KvP/F6/cEDPWet/uo8MYQ9dsWKxBvzdahRF2xSB",
+	"Fzwgf4R413W/AgAA///0s+eI8gUAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
