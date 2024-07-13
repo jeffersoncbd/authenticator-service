@@ -3,12 +3,12 @@ package api
 import (
 	"authenticator/internal/databases/postgresql"
 	"authenticator/internal/spec"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 
+	openapi_types "github.com/discord-gophers/goapi-gen/types"
 	"github.com/go-playground/locales/pt_BR"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -17,11 +17,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
-
-type store interface {
-	GetUser(context.Context, string) (postgresql.User, error)
-	InsertUser(context.Context, postgresql.InsertUserParams) error
-}
 
 type Validator struct {
 	validate	*validator.Validate
@@ -37,7 +32,7 @@ func (v Validator) Translate(err error) string {
 }
 
 type API struct{
-	store		store
+	store		*postgresql.Queries
 	logger		*zap.Logger
 	validator	Validator
 }
@@ -67,7 +62,21 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 // Lista todos os usuários
 // (GET /users)
 func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	rows, err := api.store.ListUsers(r.Context())
+    if err!= nil {
+        api.logger.Error("Falha ao listar usuários", zap.Error(err))
+        return spec.GetUsersJSON500Response(spec.Error{Feedback: "Falha ao listar usuários, tente novamente em alguns minutos..."})
+    }
+
+    var users []spec.UserData
+    for _, row := range rows {
+        users = append(users, spec.UserData{
+            Name:  row.Name,
+            Email: openapi_types.Email(row.Email),
+        })
+    }
+
+    return spec.GetUsersJSON200Response(users)
 }
 
 // Cadastra um novo usuário
