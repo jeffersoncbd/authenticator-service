@@ -48,6 +48,7 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 
 const listUsers = `-- name: ListUsers :many
 SELECT name, email, status FROM users
+ORDER BY name ASC
 `
 
 type ListUsersRow struct {
@@ -74,4 +75,20 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateUserStatus = `-- name: UpdateUserStatus :exec
+UPDATE users
+SET status = $2
+WHERE email = $1
+`
+
+type UpdateUserStatusParams struct {
+	Email  string
+	Status pgtype.Text
+}
+
+func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) error {
+	_, err := q.db.Exec(ctx, updateUserStatus, arg.Email, arg.Status)
+	return err
 }

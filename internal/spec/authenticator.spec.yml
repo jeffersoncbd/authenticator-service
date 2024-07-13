@@ -7,6 +7,11 @@ info:
   version: 1.0.0
 components:
   schemas:
+    UserStatus:
+      type: string
+      enum:
+        - active
+        - inactive
     User:
       type: object
       properties:
@@ -38,13 +43,18 @@ components:
           type: string
           format: email
         status:
-          type: string
-          enum:
-            - active
-            - inactive
+          $ref: "#/components/schemas/UserStatus"
       required:
         - name
         - email
+        - status
+      additionalProperties: false
+    PatchUserStatus:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/UserStatus"
+      required:
         - status
       additionalProperties: false
     Error:
@@ -90,6 +100,35 @@ paths:
               $ref: "#/components/schemas/User"
       responses:
         "201":
+          description: Resposta vazia
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/{byEmail}:
+    patch:
+      summary: Atualiza o status de um usuário
+      tags:
+        - users
+      parameters:
+        - in: path
+          name: byEmail
+          schema:
+            type: string
+            format: email
+            x-go-extra-tags:
+              validate: required,email
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchUserStatus"
+      responses:
+        "200":
           description: Resposta vazia
         "400":
           description: Bad request

@@ -14,6 +14,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	pt_br_translations "github.com/go-playground/validator/v10/translations/pt_BR"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -70,7 +71,7 @@ func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
 
     var users []spec.UserData
     for _, row := range rows {
-		status := spec.UserDataStatus{}
+		status := spec.UserStatus{}
 		status.FromValue(row.Status.String)
         users = append(users, spec.UserData{
             Name:  row.Name,
@@ -114,6 +115,30 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
         api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
         return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
     }
+
+	return nil
+}
+
+// Atualiza o status de um usuário
+// (PATCH /users/{byEmail})
+func (api API) PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail openapi_types.Email) *spec.Response {
+	var body spec.PatchUserStatus
+
+    err := json.NewDecoder(r.Body).Decode(&body)
+    if err!= nil {
+        return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+    }
+
+    if err := api.validator.validate.Struct(body); err!= nil {
+        return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+    }
+
+    if err := api.store.UpdateUserStatus(r.Context(), postgresql.UpdateUserStatusParams{
+        Email:  string(byEmail),
+        Status: pgtype.Text{String: body.Status.ToValue(), Valid: true},
+    }); err != nil {
+        api.logger.Error("Falha ao atualizar status do usuário", zap.Error(err))
+	}
 
 	return nil
 }

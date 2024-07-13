@@ -15,24 +15,30 @@ import (
 	"path"
 	"strings"
 
+	"github.com/discord-gophers/goapi-gen/runtime"
 	openapi_types "github.com/discord-gophers/goapi-gen/types"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
 
-// Defines values for UserDataStatus.
+// Defines values for UserStatus.
 var (
-	UnknownUserDataStatus = UserDataStatus{}
+	UnknownUserStatus = UserStatus{}
 
-	UserDataStatusActive = UserDataStatus{"active"}
+	UserStatusActive = UserStatus{"active"}
 
-	UserDataStatusInactive = UserDataStatus{"inactive"}
+	UserStatusInactive = UserStatus{"inactive"}
 )
 
 // Error defines model for Error.
 type Error struct {
 	Feedback string `json:"feedback"`
+}
+
+// PatchUserStatus defines model for PatchUserStatus.
+type PatchUserStatus struct {
+	Status UserStatus `json:"status"`
 }
 
 // User defines model for User.
@@ -46,35 +52,35 @@ type User struct {
 type UserData struct {
 	Email  openapi_types.Email `json:"email"`
 	Name   string              `json:"name"`
-	Status UserDataStatus      `json:"status"`
+	Status UserStatus          `json:"status"`
 }
 
-// UserDataStatus defines model for UserData.Status.
-type UserDataStatus struct {
+// UserStatus defines model for UserStatus.
+type UserStatus struct {
 	value string
 }
 
-func (t *UserDataStatus) ToValue() string {
+func (t *UserStatus) ToValue() string {
 	return t.value
 }
-func (t UserDataStatus) MarshalJSON() ([]byte, error) {
+func (t UserStatus) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.value)
 }
-func (t *UserDataStatus) UnmarshalJSON(data []byte) error {
+func (t *UserStatus) UnmarshalJSON(data []byte) error {
 	var value string
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
 	return t.FromValue(value)
 }
-func (t *UserDataStatus) FromValue(value string) error {
+func (t *UserStatus) FromValue(value string) error {
 	switch value {
 
-	case UserDataStatusActive.value:
+	case UserStatusActive.value:
 		t.value = value
 		return nil
 
-	case UserDataStatusInactive.value:
+	case UserStatusInactive.value:
 		t.value = value
 		return nil
 
@@ -85,11 +91,22 @@ func (t *UserDataStatus) FromValue(value string) error {
 // PostUsersJSONBody defines parameters for PostUsers.
 type PostUsersJSONBody User
 
+// PatchUsersByEmailJSONBody defines parameters for PatchUsersByEmail.
+type PatchUsersByEmailJSONBody PatchUserStatus
+
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody PostUsersJSONBody
 
 // Bind implements render.Binder.
 func (PostUsersJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
+
+// PatchUsersByEmailJSONRequestBody defines body for PatchUsersByEmail for application/json ContentType.
+type PatchUsersByEmailJSONRequestBody PatchUsersByEmailJSONBody
+
+// Bind implements render.Binder.
+func (PatchUsersByEmailJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -164,6 +181,16 @@ func PostUsersJSON400Response(body Error) *Response {
 	}
 }
 
+// PatchUsersByEmailJSON400Response is a constructor method for a PatchUsersByEmail response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PatchUsersByEmailJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Lista todos os usuários
@@ -172,6 +199,9 @@ type ServerInterface interface {
 	// Cadastra um novo usuário
 	// (POST /users)
 	PostUsers(w http.ResponseWriter, r *http.Request) *Response
+	// Atualiza o status de um usuário
+	// (PATCH /users/{byEmail})
+	PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail openapi_types.Email) *Response
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -204,6 +234,32 @@ func (siw *ServerInterfaceWrapper) PostUsers(w http.ResponseWriter, r *http.Requ
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.PostUsers(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// PatchUsersByEmail operation middleware
+func (siw *ServerInterfaceWrapper) PatchUsersByEmail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ------------- Path parameter "byEmail" -------------
+	var byEmail openapi_types.Email
+
+	if err := runtime.BindStyledParameter("simple", false, "byEmail", chi.URLParam(r, "byEmail"), &byEmail); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "byEmail"})
+		return
+	}
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.PatchUsersByEmail(w, r, byEmail)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -333,6 +389,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	r.Route(options.BaseURL, func(r chi.Router) {
 		r.Get("/users", wrapper.GetUsers)
 		r.Post("/users", wrapper.PostUsers)
+		r.Patch("/users/{byEmail}", wrapper.PatchUsersByEmail)
 	})
 	return r
 }
@@ -358,17 +415,18 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7xU3U4cOwx+lcjnXM6yy+FUqkbqBbSoQuoFasUVcGEm3iV0JwmxZ8oWzcNUvegT9Al4",
-	"scqZ3QF2oS3qz1Ws6LP9+fucXEMV6hg8eWEor4Grc6oxh/sphaQBWuvEBY/zwxQiJXHEUE5xzlRAvHN1",
-	"DVMie4bVe41lEQlKYEnOz6DrCkh02bhEFsrjW+RpsUKGswuqBLoCjpie2plqdPNMIaQaBcrlTbHGo4Cr",
-	"0SyM6EoSjgRnObnFubMoCltxLPp0pe2xps2BfrpQ7fyLnVwoIvOHkOw9msNl8SsNnkO3rnCmXQwyDH0e",
-	"E/wVCv4h0R8VsSuABaXpq/mmVuJYiWuVuvPL8LT4wTatzbqsuTmp5jk/DdrOElfJRR0VStjnSJWbugpv",
-	"vtx8JTYWze7hgYmY0ASjqzoib/Ua47yHfQ7mBHYbOScvrkIJ6QQUQHVMxHr6pqVa5XAyVx73wFBAS4n7",
-	"/ttbk62J6hEieYwOStjJV+qcnGeBxg1TytGMRA/1AnWAAwslvCY5ygDVhmPw3Lv032SiRxW8kM95GPMI",
-	"mjm+YO2/evkaOaE6J/6baAol/DO+/SPGyw9iPGxMN4iMKeGi1/i+tm8cCxob2DTc3HxKLrCp0CJLQhtY",
-	"Szx7IsfvUes/rgd4HHih5HFu3lFqKZkVsABu6hrTYuAqQdneJawm5jd4DL0Lp/qgAz/gw2HgO0ZcNsSy",
-	"F+zit82Xf8e15y6poW7D9+3NPX+rCB2xxY8uu/f/35B+D61ZarEm+MvlIpimNj60YZD8AcW7rvsWAAD/",
-	"/yU+5O6xBgAA",
+	"H4sIAAAAAAAC/9RW3U4bOxB+ldWcc7kh4XAqVSv1AlpUIfUiKuIKcjFZTxLTXdvYsykh2oepetEn6BPw",
+	"YtV4kyV/UBBQqVdrWTPjb77v83jnkNvSWUOGA2RzCPmESozLY++tlwUqpVlbg0XfW0eeNQXIRlgESsGt",
+	"bM1hRKSGmH+RNc8cQQaBvTZjqOsUPF1V2pOC7PwucpAuI+3wknKGOoU+cj45C+RPGbkKTwQR2qR/PY0g",
+	"g3+6d012Fx12V8pvYlsU2IVMsp4Ih0rURSTH+hIZssVOusFQCtedse3QNXvsMI5j8hQLrZAlbIkwbdIF",
+	"tMGStql+dKFSm3cHsZDDEL5ar9Zgtpvpcw54C/UmvxF22tLQnnMf4R+Q8ZVIv5fEOn2+jzb6/I2t7rxO",
+	"piolH3PWU6mgzWI52MIvZ2ozspKnKOReO6EIMjgOjnI90jne/rj9SSFRmBz2TxKHHhObyOXrkFGyja5o",
+	"wr7b5AIOK56QYZ0jW38BEkCl8xTka6oplUKj5kJwrAVDClPyoTl/f6+315PmrCODTkMGB3FLFOdJ7LRb",
+	"BfJxNSaWj2iI0sCJggw+Ep/FAOE1OGtCo+5/vZ58cmuYTMxDF1uQzO5lkPOXs0xWmql8lJDRaXVLMnqP",
+	"s4bjdW4/6cCYKBuSKlS337y2IclRYWCPygYp8eaJGB+C1oziHThODJM3WCSn5Kfkk2VgCqEqS/SzFitb",
+	"QbsKWESMd/ccGhUGMghs2KFD34YVIa4qCnxk1ezF+otTdWNMsK+o3tJ9f9vnnyVCWpzijY7q/f8nqD9C",
+	"lSy42CD8/cIISVUmxk5tS/kOxut0cQe68+HsWAZFLYicPIA7dFi+i+GoCY53yWNJHK/R+Ry0iZObJ7Cc",
+	"bDBsY9fZTVcoeOm3qR68jlM2/wweZZreX2CaQ66w0DcymZt3IlEkBnrIO3X9KwAA//8DXCzKvwkAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
