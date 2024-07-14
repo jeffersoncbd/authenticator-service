@@ -7,12 +7,14 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	openapi_types "github.com/discord-gophers/goapi-gen/types"
 	"github.com/go-playground/locales/pt_BR"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	pt_br_translations "github.com/go-playground/validator/v10/translations/pt_BR"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,6 +61,56 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 			translator: translator,
 		},
     }
+}
+
+// Autentica usuário
+// (POST /login)
+func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response {
+	var body spec.Credentials
+
+    err := json.NewDecoder(r.Body).Decode(&body)
+    if err!= nil {
+        return spec.PostLoginJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+    }
+
+    if err := api.validator.validate.Struct(body); err!= nil {
+        return spec.PostLoginJSON400Response(spec.Error{Feedback: api.validator.Translate(err)})
+    }
+
+    user, err := api.store.GetUser(r.Context(), string(body.Email))
+    if err!= nil {
+        if errors.Is(err, pgx.ErrNoRows) {
+            return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
+        }
+        api.logger.Error("Falha ao buscar usuário", zap.String("email", string(body.Email)), zap.Error(err))
+		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
+		}
+        api.logger.Error("Falha comparar hash com senha", zap.String("password", string(body.Password)), zap.Error(err))
+		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
+	}
+
+	secret := "implementar-depois"
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iss": "authenticator_ID",
+		"sub": body.Email,
+		"aud": "authenticator",
+		"exp": time.Now().Add(time.Hour * 12).Unix(),
+		"iat": time.Now().Unix(),
+	})
+
+	signedToken, err := token.SignedString([]byte(secret))
+	if err!= nil {
+        api.logger.Error("Falha ao assinar token", zap.String("token", token.Raw), zap.Error(err))
+        return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
+    }
+
+	return spec.PostLoginJSON200Response(spec.LoginResponse{Token:  signedToken})
 }
 
 // Lista todos os usuários

@@ -7,6 +7,29 @@ info:
   version: 1.0.0
 components:
   schemas:
+    Credentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          x-go-extra-tags:
+            validate: required,min=8,max=32
+      required:
+        - email
+        - password
+      additionalProperties: false
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+        - token
+      additionalProperties: false
     UserStatus:
       type: string
       enum:
@@ -67,6 +90,30 @@ components:
       additionalProperties: false
 
 paths:
+  /login:
+    post:
+      summary: Autentica usuário
+      tags:
+        - session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Token de autenticação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /users:
     get:
       summary: Lista todos os usuários
@@ -87,7 +134,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
     post:
       summary: Cadastra um novo usuário
       tags:

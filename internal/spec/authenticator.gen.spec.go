@@ -31,9 +31,20 @@ var (
 	UserStatusInactive = UserStatus{"inactive"}
 )
 
+// Credentials defines model for Credentials.
+type Credentials struct {
+	Email    openapi_types.Email `json:"email"`
+	Password string              `json:"password" validate:"required,min=8,max=32"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Feedback string `json:"feedback"`
+}
+
+// LoginResponse defines model for LoginResponse.
+type LoginResponse struct {
+	Token string `json:"token"`
 }
 
 // PatchUserStatus defines model for PatchUserStatus.
@@ -88,11 +99,22 @@ func (t *UserStatus) FromValue(value string) error {
 	return fmt.Errorf("unknown enum value: %v", value)
 }
 
+// PostLoginJSONBody defines parameters for PostLogin.
+type PostLoginJSONBody Credentials
+
 // PostUsersJSONBody defines parameters for PostUsers.
 type PostUsersJSONBody User
 
 // PatchUsersByEmailJSONBody defines parameters for PatchUsersByEmail.
 type PatchUsersByEmailJSONBody PatchUserStatus
+
+// PostLoginJSONRequestBody defines body for PostLogin for application/json ContentType.
+type PostLoginJSONRequestBody PostLoginJSONBody
+
+// Bind implements render.Binder.
+func (PostLoginJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody PostUsersJSONBody
@@ -151,6 +173,26 @@ func (resp *Response) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.Encode(resp.body)
 }
 
+// PostLoginJSON200Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON200Response(body LoginResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// PostLoginJSON400Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
 // GetUsersJSON200Response is a constructor method for a GetUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
 func GetUsersJSON200Response(body []UserData) *Response {
@@ -193,6 +235,9 @@ func PatchUsersByEmailJSON400Response(body Error) *Response {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Autentica usuário
+	// (POST /login)
+	PostLogin(w http.ResponseWriter, r *http.Request) *Response
 	// Lista todos os usuários
 	// (GET /users)
 	GetUsers(w http.ResponseWriter, r *http.Request) *Response
@@ -208,6 +253,24 @@ type ServerInterface interface {
 type ServerInterfaceWrapper struct {
 	Handler          ServerInterface
 	ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request, err error)
+}
+
+// PostLogin operation middleware
+func (siw *ServerInterfaceWrapper) PostLogin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.PostLogin(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
 }
 
 // GetUsers operation middleware
@@ -387,6 +450,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	}
 
 	r.Route(options.BaseURL, func(r chi.Router) {
+		r.Post("/login", wrapper.PostLogin)
 		r.Get("/users", wrapper.GetUsers)
 		r.Post("/users", wrapper.PostUsers)
 		r.Patch("/users/{byEmail}", wrapper.PatchUsersByEmail)
@@ -415,19 +479,20 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9RWzU4jORB+lVbtHjskwK60aokD7KIV0hyiQZwgh0q7kpjpto1dnSFE/TCjOcwTzBPw",
-	"YqNyJ03+YEDASHNqy6oqf/V9n8s9h9yWzhoyHCCbQ8gnVGJcnnpvvSxQKc3aGiz63jryrClANsIiUApu",
-	"ZWsOIyI1xPyTrHnmCDII7LUZQ12n4Omm0p4UZJcPkYN0GWmH15Qz1Cn0kfPJRSB/zshVeCGI0Cb96WkE",
-	"GfzRfWiyu+iwu1J+E9uiwC5kkvVCOFSiLiI51pfIkC120g2GUrjtjG2Hbtljh3Eck6dYaIUsYUuEaZMu",
-	"oA2WtE31swuV2hwdxkIOQ/hsvVqD2W6mrzngn7TE26PDA6g3aY7o05aN9rjHeP8PGd+J+0e5rNPX22mj",
-	"z5+468HyZKpS8jFnPZUK2iyWgy38cqY2Iyt5ikLutROKIIPT4CjXI53j/bf77xQShclx/yxx6DGxidzB",
-	"Dhkl2+iKJuyrTa7guOIJGdY5svVXIAFUOk9BvqaaUik0ai4Ex1owpDAlH5rz9/d6ez1pzjoy6DRkcBi3",
-	"RHGexE67VSAfV2Ni+YiGKA2cKcjgf+KLGCC8BmdNaNQ96PXkk1vDZGIeutiCZHavg5y/HGmy0kzls4SM",
-	"TqtbktF7nDUcr3P7QQfGRNmQVKG6/+K1DUmOCgN7VDZIib9fiPEpaM1E3oHjzDB5g0VyTn5KPlkGphCq",
-	"skQ/a7GyFbSrgEXEeIUvoVFhIPPAhh069G1YEeKmosAnVs3erL84XDfGBPuK6i3d97d9/lEipMUp3umo",
-	"3l+/gvoTVMmCiw3C/10YIanKxNipbSnfwXidLu5Adz6cncqgqAWRk3dwhw7L5zGcNMHxLnksieM1upyD",
-	"NnGA8wSWkw2Gbew6u+kKBW/9RNWD93HK5g/Cs0zT+w1Mc8wVFvpOJnPzTiSKxEBPeaeufwQAAP//2pkz",
-	"F8YJAAA=",
+	"H4sIAAAAAAAC/8xWzW4bNxB+FWLa4zpS4hYoFsjBTo3CQA5C05wcHUbLkcRkSW7JWdWKsA9T9NAn6BP4",
+	"xYrhSqsfb2sJkduclqJmON/MfPORKyi8rbwjxxHyFcRiThbT8k0gTY4Nluknam3YeIflKPiKAhuKkE+x",
+	"jJRBtbO1ArJoSllMfbDIkK93MuBlRZBD5GDcDJoMKozxNx/0nnW3eeiQwf3FzF/QPQe8YJylaAssjUYW",
+	"s0C/1iaQzqxxr3/ILN6/vnwFTdNk3V+Q33VoujjjLpCffKSCBdlNCD6cmPiUSE+w+CTrg1QPIHSWfaHf",
+	"+plxP1OsvIt0IgT2n8g9Hb816ws+Qi7m7yOFd4xcn9r62Dl9G2gKOXwz2BJssGbXYOf4Q2DrA/qQidcz",
+	"MfFoYrXuAtqhpcd1Pomhl+mg/2UEEvrsuEmQuv+IjM+nAv21bLIvp9NBnk+wa0t5crUVfyzYLOQE49bL",
+	"8SP8EtO4qRc/TbEIppISQQ43saLCTE2BD38+/EVRaVRXo1tVYUDllQjABTkt21iVrdkfXn2Aq5rnor0F",
+	"sg8fQAzIVoGifF29ICtlNFwKjj1jyGBBIbbxX74YvhhKcr4ih5WBHC7TlnSc5ynTQSlqI6vKR5avNBEl",
+	"g1sNOYx85CRI0FaWIl97vRTDwjsml3ywSvjFa/Axere9S55q3u41c0BTDjWljVYJE9xXw+HZQu/rbAq+",
+	"379fRCWVJoU1txVODZKKfndGHO1V0xP/GrVa1zwxO9bWYli2PW8BqTrWD78H44UQSQ7uIFJMBBiLz6CO",
+	"FFLpZtTT3p+I3yeDL6yzYbJHDWpSkqYbIgwBl325vzWRUWkfuwyjKlBj5IDaRzni+/+iB7eOKTgs1TsK",
+	"CwpqY7jbjRYre0G7C3inJ20XxqL3/zhm20acf8zS5XnUfL18rGNpRiTFBX42+BXQ/82aCKq2yvmF75uC",
+	"TcW7GRisJssbuQiapHbyzunpw+b5E69b46SVAS1xGqO7FYhaJv2Ezc0Fk852v7rZTgnO/QRpxs/DlMMH",
+	"4PGi/JWT5oprLM1nuXnbd4Aoe23/lTtN83cAAAD//4viBHkiDQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
