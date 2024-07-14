@@ -2,6 +2,7 @@ package main
 
 import (
 	api "authenticator/internal"
+	"authenticator/internal/databases/postgresql"
 	"authenticator/internal/spec"
 	"context"
 	"errors"
@@ -14,10 +15,12 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/phenpessoa/gutils/netutils/httputils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
@@ -57,6 +60,34 @@ func run(ctx context.Context) error {
 
 	if err := pool.Ping(ctx); err != nil {
 		return err
+	}
+
+	store := postgresql.New(pool)
+	_, err = store.GetApplicationByName(ctx, "authenticator")
+	if err != nil {
+        if errors.Is(err, pgx.ErrNoRows) {
+            store.InsertApplication(ctx, "authenticator")
+			fmt.Println(" \033[0;32m✔\033[0m authenticator application inserted")
+        } else {
+			return err
+		}
+    }
+	_, err = store.GetUser(ctx, os.Getenv("ROOT_MAIL"))
+	if err != nil {
+        if errors.Is(err, pgx.ErrNoRows) {
+			hash, err := bcrypt.GenerateFromPassword([]byte(os.Getenv("ROOT_PASS")), bcrypt.DefaultCost)
+			if err != nil {
+				return err
+			}
+            store.InsertUser(ctx, postgresql.InsertUserParams{
+				Email: os.Getenv("ROOT_MAIL"),
+				Name: "root",
+				Password: string(hash),
+			})
+			fmt.Println(" \033[0;32m✔\033[0m root user inserted")
+        } else {
+			return err
+		}
 	}
 
 	r := chi.NewMux()

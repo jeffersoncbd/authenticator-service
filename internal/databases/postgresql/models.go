@@ -5,8 +5,14 @@
 package postgresql
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type Application struct {
+	ID   uuid.UUID
+	Name string
+}
 
 type User struct {
 	Email    string

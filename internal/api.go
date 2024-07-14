@@ -69,16 +69,16 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 	var body spec.Credentials
 
     err := json.NewDecoder(r.Body).Decode(&body)
-    if err!= nil {
+    if err != nil {
         return spec.PostLoginJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
     }
 
-    if err := api.validator.validate.Struct(body); err!= nil {
+    if err := api.validator.validate.Struct(body); err != nil {
         return spec.PostLoginJSON400Response(spec.Error{Feedback: api.validator.Translate(err)})
     }
 
     user, err := api.store.GetUser(r.Context(), string(body.Email))
-    if err!= nil {
+    if err != nil {
         if errors.Is(err, pgx.ErrNoRows) {
             return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
         }
@@ -105,7 +105,7 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 	})
 
 	signedToken, err := token.SignedString([]byte(secret))
-	if err!= nil {
+	if err != nil {
         api.logger.Error("Falha ao assinar token", zap.String("token", token.Raw), zap.Error(err))
         return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
     }
@@ -117,7 +117,7 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 // (GET /users)
 func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
 	rows, err := api.store.ListUsers(r.Context())
-    if err!= nil {
+    if err != nil {
         api.logger.Error("Falha ao listar usuários", zap.Error(err))
         return spec.GetUsersJSON500Response(spec.Error{Feedback: "Falha ao listar usuários, tente novamente em alguns minutos..."})
     }
@@ -160,7 +160,7 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-	if err!= nil {
+	if err != nil {
         api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
         return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
     }
@@ -169,7 +169,7 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 		Name:     body.Name,
 		Password: string(hash),
 	})
-	if err!= nil {
+	if err != nil {
         api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
         return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
     }
@@ -183,11 +183,11 @@ func (api API) PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail
 	var body spec.PatchUserStatus
 
     err := json.NewDecoder(r.Body).Decode(&body)
-    if err!= nil {
+    if err != nil {
         return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
     }
 
-    if err := api.validator.validate.Struct(body); err!= nil {
+    if err := api.validator.validate.Struct(body); err != nil {
         return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
     }
 

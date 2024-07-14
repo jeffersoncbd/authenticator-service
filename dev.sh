@@ -6,6 +6,8 @@ set +o allexport
 
 docker compose --env-file .env -f docker-compose-local.yml up -d
 
+sleep 2
+
 goapi-gen --package=spec --out internal/spec/authenticator.gen.spec.go internal/spec/authenticator.spec.yml
 printf " \033[0;32m✔\033[0m API Specs \n"
 
