@@ -1,0 +1,194 @@
+openapi: 3.0.0
+info:
+  title: Authenticator
+  description: >-
+    Especificações da API para o back-end da aplicação "Authenticator".
+  version: 1.0.0
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Credentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          x-go-extra-tags:
+            validate: required,min=8,max=32
+      required:
+        - email
+        - password
+      additionalProperties: false
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+        - token
+      additionalProperties: false
+    UserStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+          x-go-extra-tags:
+            validate: required,min=3
+        email:
+          type: string
+          format: email
+          x-go-extra-tags:
+            validate: required,email
+        password:
+          type: string
+          format: password
+          x-go-extra-tags:
+            validate: required,min=8,max=32
+      required:
+        - name
+        - email
+        - password
+      additionalProperties: false
+    UserData:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          $ref: "#/components/schemas/UserStatus"
+      required:
+        - name
+        - email
+        - status
+      additionalProperties: false
+    PatchUserStatus:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/UserStatus"
+      required:
+        - status
+      additionalProperties: false
+    Error:
+      type: object
+      properties:
+        feedback:
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
+
+paths:
+  /login:
+    post:
+      summary: Autentica usuário
+      tags:
+        - session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Token de autenticação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Lista todos os usuários
+      tags:
+        - users
+      responses:
+        "200":
+          description: Lista dos usuários cadastrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserData"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      security:
+        - bearerAuth: []
+      summary: Cadastra um novo usuário
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "201":
+          description: Resposta vazia
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/{byEmail}:
+    patch:
+      security:
+        - bearerAuth: []
+      summary: Atualiza o status de um usuário
+      tags:
+        - users
+      parameters:
+        - in: path
+          name: byEmail
+          schema:
+            type: string
+            format: email
+            x-go-extra-tags:
+              validate: required,email
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchUserStatus"
+      responses:
+        "200":
+          description: Resposta vazia
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

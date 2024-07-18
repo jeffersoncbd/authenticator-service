@@ -90,6 +90,7 @@ func run(ctx context.Context) error {
 		}
 	}
 
+
 	r := chi.NewMux()
 	r.Use(middleware.RequestID, middleware.Recoverer, httputils.ChiLogger(logger))
 
@@ -99,6 +100,7 @@ func run(ctx context.Context) error {
 	)
 
 	r.Mount("/", spec.Handler(&si))
+	r.Handle("/docs/*", http.StripPrefix("/docs/", http.FileServer(http.Dir("swagger"))))
 
 	srv := &http.Server{
 		Addr:         ":8080",

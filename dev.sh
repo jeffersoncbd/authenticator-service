@@ -4,6 +4,8 @@ set -o allexport
 source .env
 set +o allexport
 
+cp internal/spec/authenticator.spec.yml swagger/
+
 docker compose --env-file .env -f docker-compose-local.yml up -d
 
 sleep 2
