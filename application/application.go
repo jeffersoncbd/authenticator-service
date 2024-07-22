@@ -3,6 +3,7 @@ package main
 import (
 	api "authenticator/internal"
 	"authenticator/internal/databases/postgresql"
+	"authenticator/internal/middlewares"
 	"authenticator/internal/spec"
 	"context"
 	"errors"
@@ -65,34 +66,36 @@ func run(ctx context.Context) error {
 	store := postgresql.New(pool)
 	_, err = store.GetApplicationByName(ctx, "authenticator")
 	if err != nil {
-        if errors.Is(err, pgx.ErrNoRows) {
-            store.InsertApplication(ctx, "authenticator")
+		if errors.Is(err, pgx.ErrNoRows) {
+			store.InsertApplication(ctx, "authenticator")
 			fmt.Println(" \033[0;32m✔\033[0m authenticator application inserted")
-        } else {
+		} else {
 			return err
 		}
-    }
+	}
 	_, err = store.GetUser(ctx, os.Getenv("ROOT_MAIL"))
 	if err != nil {
-        if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			hash, err := bcrypt.GenerateFromPassword([]byte(os.Getenv("ROOT_PASS")), bcrypt.DefaultCost)
 			if err != nil {
 				return err
 			}
-            store.InsertUser(ctx, postgresql.InsertUserParams{
-				Email: os.Getenv("ROOT_MAIL"),
-				Name: "root",
+			store.InsertUser(ctx, postgresql.InsertUserParams{
+				Email:    os.Getenv("ROOT_MAIL"),
+				Name:     "root",
 				Password: string(hash),
 			})
 			fmt.Println(" \033[0;32m✔\033[0m root user inserted")
-        } else {
+		} else {
 			return err
 		}
 	}
 
+	jwtMiddleware := middlewares.NewJwtMiddleware(logger)
 
 	r := chi.NewMux()
-	r.Use(middleware.RequestID, middleware.Recoverer, httputils.ChiLogger(logger))
+	r.Use(middleware.Recoverer, httputils.ChiLogger(logger))
+	r.Use(jwtMiddleware.Middleware())
 
 	si := api.NewAPI(
 		pool,

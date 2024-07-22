@@ -23,9 +23,10 @@ import (
 )
 
 type Validator struct {
-	validate	*validator.Validate
-	translator	ut.Translator
+	validate   *validator.Validate
+	translator ut.Translator
 }
+
 func (v Validator) Translate(err error) string {
 	var errorMessages []string
 	errs := err.(validator.ValidationErrors)
@@ -35,10 +36,10 @@ func (v Validator) Translate(err error) string {
 	return strings.Join(errorMessages, ", ")
 }
 
-type API struct{
-	store		*postgresql.Queries
-	logger		*zap.Logger
-	validator	Validator
+type API struct {
+	store     *postgresql.Queries
+	logger    *zap.Logger
+	validator Validator
 }
 
 func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
@@ -47,20 +48,20 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 
 	translator, err := universal_translator.GetTranslator("pt_BR")
 	if !err {
-        logger.Fatal("Falha ao carregar tradutores")
-    }
+		logger.Fatal("Falha ao carregar tradutores")
+	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	pt_br_translations.RegisterDefaultTranslations(validate, translator)
 
 	return API{
-        store: postgresql.New(pool),
-        logger: logger,
+		store:  postgresql.New(pool),
+		logger: logger,
 		validator: Validator{
-			validate: validate,
+			validate:   validate,
 			translator: translator,
 		},
-    }
+	}
 }
 
 // Autentica usuário
@@ -68,21 +69,21 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response {
 	var body spec.Credentials
 
-    err := json.NewDecoder(r.Body).Decode(&body)
-    if err != nil {
-        return spec.PostLoginJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
-    }
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+	}
 
-    if err := api.validator.validate.Struct(body); err != nil {
-        return spec.PostLoginJSON400Response(spec.Error{Feedback: api.validator.Translate(err)})
-    }
+	if err := api.validator.validate.Struct(body); err != nil {
+		return spec.PostLoginJSON400Response(spec.Error{Feedback: api.validator.Translate(err)})
+	}
 
-    user, err := api.store.GetUser(r.Context(), string(body.Email))
-    if err != nil {
-        if errors.Is(err, pgx.ErrNoRows) {
-            return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
-        }
-        api.logger.Error("Falha ao buscar usuário", zap.String("email", string(body.Email)), zap.Error(err))
+	user, err := api.store.GetUser(r.Context(), string(body.Email))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
+		}
+		api.logger.Error("Falha ao buscar usuário", zap.String("email", string(body.Email)), zap.Error(err))
 		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
 	}
 
@@ -90,7 +91,7 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
-        api.logger.Error("Falha comparar hash com senha", zap.String("password", string(body.Password)), zap.Error(err))
+		api.logger.Error("Falha comparar hash com senha", zap.String("password", string(body.Password)), zap.Error(err))
 		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
 	}
 
@@ -106,34 +107,34 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 
 	signedToken, err := token.SignedString([]byte(secret))
 	if err != nil {
-        api.logger.Error("Falha ao assinar token", zap.String("token", token.Raw), zap.Error(err))
-        return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
-    }
+		api.logger.Error("Falha ao assinar token", zap.String("token", token.Raw), zap.Error(err))
+		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
+	}
 
-	return spec.PostLoginJSON200Response(spec.LoginResponse{Token:  signedToken})
+	return spec.PostLoginJSON200Response(spec.LoginResponse{Token: signedToken})
 }
 
 // Lista todos os usuários
 // (GET /users)
 func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
 	rows, err := api.store.ListUsers(r.Context())
-    if err != nil {
-        api.logger.Error("Falha ao listar usuários", zap.Error(err))
-        return spec.GetUsersJSON500Response(spec.Error{Feedback: "Falha ao listar usuários, tente novamente em alguns minutos..."})
-    }
+	if err != nil {
+		api.logger.Error("Falha ao listar usuários", zap.Error(err))
+		return spec.GetUsersJSON500Response(spec.Error{Feedback: "Falha ao listar usuários, tente novamente em alguns minutos..."})
+	}
 
-    var users []spec.UserData
-    for _, row := range rows {
+	var users []spec.UserData
+	for _, row := range rows {
 		status := spec.UserStatus{}
 		status.FromValue(row.Status.String)
-        users = append(users, spec.UserData{
-            Name:  row.Name,
-            Email: openapi_types.Email(row.Email),
+		users = append(users, spec.UserData{
+			Name:   row.Name,
+			Email:  openapi_types.Email(row.Email),
 			Status: status,
-        })
-    }
+		})
+	}
 
-    return spec.GetUsersJSON200Response(users)
+	return spec.GetUsersJSON200Response(users)
 }
 
 // Cadastra um novo usuário
@@ -143,8 +144,8 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-        return spec.PostUsersJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
-    }
+		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+	}
 
 	if err := api.validator.validate.Struct(body); err != nil {
 		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
@@ -152,8 +153,8 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 
 	_, err = api.store.GetUser(r.Context(), string(body.Email))
 	if err == nil {
-        return spec.PostUsersJSON400Response(spec.Error{Feedback: "Já existe usuário cadastrado com este e-mail"})
-    }
+		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Já existe usuário cadastrado com este e-mail"})
+	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		api.logger.Error("Falha ao consultar email", zap.Error(err), zap.String("email", string(body.Email)))
 		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
@@ -161,18 +162,18 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
-        api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
-        return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
-    }
+		api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
+		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
+	}
 	err = api.store.InsertUser(r.Context(), postgresql.InsertUserParams{
 		Email:    string(body.Email),
 		Name:     body.Name,
 		Password: string(hash),
 	})
 	if err != nil {
-        api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
-        return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
-    }
+		api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
+		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
+	}
 
 	return nil
 }
@@ -182,20 +183,20 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 func (api API) PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail openapi_types.Email) *spec.Response {
 	var body spec.PatchUserStatus
 
-    err := json.NewDecoder(r.Body).Decode(&body)
-    if err != nil {
-        return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
-    }
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+	}
 
-    if err := api.validator.validate.Struct(body); err != nil {
-        return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
-    }
+	if err := api.validator.validate.Struct(body); err != nil {
+		return spec.PatchUsersByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+	}
 
-    if err := api.store.UpdateUserStatus(r.Context(), postgresql.UpdateUserStatusParams{
-        Email:  string(byEmail),
-        Status: pgtype.Text{String: body.Status.ToValue(), Valid: true},
-    }); err != nil {
-        api.logger.Error("Falha ao atualizar status do usuário", zap.Error(err))
+	if err := api.store.UpdateUserStatus(r.Context(), postgresql.UpdateUserStatusParams{
+		Email:  string(byEmail),
+		Status: pgtype.Text{String: body.Status.ToValue(), Valid: true},
+	}); err != nil {
+		api.logger.Error("Falha ao atualizar status do usuário", zap.Error(err))
 	}
 
 	return nil

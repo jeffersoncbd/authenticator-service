@@ -6,6 +6,7 @@ package spec
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
@@ -20,6 +21,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+)
+
+const (
+	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
 // Defines values for UserStatus.
@@ -277,6 +282,8 @@ func (siw *ServerInterfaceWrapper) PostLogin(w http.ResponseWriter, r *http.Requ
 func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.GetUsers(w, r)
 		if resp != nil {
@@ -294,6 +301,8 @@ func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Reque
 // PostUsers operation middleware
 func (siw *ServerInterfaceWrapper) PostUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.PostUsers(w, r)
@@ -320,6 +329,8 @@ func (siw *ServerInterfaceWrapper) PatchUsersByEmail(w http.ResponseWriter, r *h
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "byEmail"})
 		return
 	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.PatchUsersByEmail(w, r, byEmail)
@@ -479,20 +490,21 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"Y6Op/pVabft3AAAA///GNxfjxQ0AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -2,10 +2,14 @@ openapi: 3.0.0
 info:
   title: Authenticator
   description: >-
-    Especificações da API para o back-end da aplicação "Authenticator" da
-    empresa emnuvem
+    Especificações da API para o back-end da aplicação "Authenticator".
   version: 1.0.0
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Credentials:
       type: object
@@ -116,6 +120,8 @@ paths:
                 $ref: "#/components/schemas/Error"
   /users:
     get:
+      security:
+        - bearerAuth: []
       summary: Lista todos os usuários
       tags:
         - users
@@ -135,6 +141,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     post:
+      security:
+        - bearerAuth: []
       summary: Cadastra um novo usuário
       tags:
         - users
@@ -155,6 +163,8 @@ paths:
                 $ref: "#/components/schemas/Error"
   /users/{byEmail}:
     patch:
+      security:
+        - bearerAuth: []
       summary: Atualiza o status de um usuário
       tags:
         - users
