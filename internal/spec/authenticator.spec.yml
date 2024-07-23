@@ -14,15 +14,23 @@ components:
     Credentials:
       type: object
       properties:
+        application:
+          type: string
+          format: uuid
+          x-go-extra-tags:
+            validate: required
         email:
           type: string
           format: email
+          x-go-extra-tags:
+            validate: required
         password:
           type: string
           format: password
           x-go-extra-tags:
             validate: required,min=8,max=32
       required:
+        - application
         - email
         - password
       additionalProperties: false
@@ -92,6 +100,13 @@ components:
       required:
         - feedback
       additionalProperties: false
+    InternalServerError:
+      type: object
+      properties:
+        feedback:
+          type: "string"
+          enum:
+            - internal server error
 
 paths:
   /login:
@@ -118,6 +133,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
   /users:
     get:
       security:
@@ -139,7 +160,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/InternalServerError"
     post:
       security:
         - bearerAuth: []
@@ -161,6 +182,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
   /users/{byEmail}:
     patch:
       security:
@@ -192,3 +219,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"

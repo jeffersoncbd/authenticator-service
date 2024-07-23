@@ -82,7 +82,7 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 			return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha ao buscar usuário", zap.String("email", string(body.Email)), zap.Error(err))
-		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
+		return spec.PostLoginJSON500Response(spec.InternalServerError{})
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
@@ -90,7 +90,7 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 			return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha comparar hash com senha", zap.String("password", string(body.Password)), zap.Error(err))
-		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Falha ao tentar fazer login, tente novamente em alguns minutos"})
+		return spec.PostLoginJSON500Response(spec.InternalServerError{})
 	}
 
 	secret := "implementar-depois"

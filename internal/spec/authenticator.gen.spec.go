@@ -27,6 +27,13 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for InternalServerErrorFeedback.
+var (
+	UnknownInternalServerErrorFeedback = InternalServerErrorFeedback{}
+
+	InternalServerErrorFeedbackInternalServerError = InternalServerErrorFeedback{"internal server error"}
+)
+
 // Defines values for UserStatus.
 var (
 	UnknownUserStatus = UserStatus{}
@@ -38,13 +45,19 @@ var (
 
 // Credentials defines model for Credentials.
 type Credentials struct {
-	Email    openapi_types.Email `json:"email"`
-	Password string              `json:"password" validate:"required,min=8,max=32"`
+	Application string              `json:"application" validate:"required"`
+	Email       openapi_types.Email `json:"email" validate:"required"`
+	Password    string              `json:"password" validate:"required,min=8,max=32"`
 }
 
 // Error defines model for Error.
 type Error struct {
 	Feedback string `json:"feedback"`
+}
+
+// InternalServerError defines model for InternalServerError.
+type InternalServerError struct {
+	Feedback *InternalServerErrorFeedback `json:"feedback,omitempty"`
 }
 
 // LoginResponse defines model for LoginResponse.
@@ -69,6 +82,35 @@ type UserData struct {
 	Email  openapi_types.Email `json:"email"`
 	Name   string              `json:"name"`
 	Status UserStatus          `json:"status"`
+}
+
+// InternalServerErrorFeedback defines model for InternalServerError.Feedback.
+type InternalServerErrorFeedback struct {
+	value string
+}
+
+func (t *InternalServerErrorFeedback) ToValue() string {
+	return t.value
+}
+func (t InternalServerErrorFeedback) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.value)
+}
+func (t *InternalServerErrorFeedback) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	return t.FromValue(value)
+}
+func (t *InternalServerErrorFeedback) FromValue(value string) error {
+	switch value {
+
+	case InternalServerErrorFeedbackInternalServerError.value:
+		t.value = value
+		return nil
+
+	}
+	return fmt.Errorf("unknown enum value: %v", value)
 }
 
 // UserStatus defines model for UserStatus.
@@ -198,6 +240,16 @@ func PostLoginJSON400Response(body Error) *Response {
 	}
 }
 
+// PostLoginJSON500Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
 // GetUsersJSON200Response is a constructor method for a GetUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
 func GetUsersJSON200Response(body []UserData) *Response {
@@ -210,7 +262,7 @@ func GetUsersJSON200Response(body []UserData) *Response {
 
 // GetUsersJSON500Response is a constructor method for a GetUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetUsersJSON500Response(body Error) *Response {
+func GetUsersJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -228,12 +280,32 @@ func PostUsersJSON400Response(body Error) *Response {
 	}
 }
 
+// PostUsersJSON500Response is a constructor method for a PostUsers response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostUsersJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
 // PatchUsersByEmailJSON400Response is a constructor method for a PatchUsersByEmail response.
 // A *Response is returned with the configured status code and content type from the spec.
 func PatchUsersByEmailJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// PatchUsersByEmailJSON500Response is a constructor method for a PatchUsersByEmail response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PatchUsersByEmailJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
 		contentType: "application/json",
 	}
 }
@@ -490,21 +562,22 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9RWzW4bNxB+FWLa49py4hYoFsjBTt3CRQ5GnaAHRYfRciQx2SW35KxqRdiHKXroE/QJ",
-	"/GLFkNLqJ9taRuQaPYniDjnfzHzzDZdQuKp2liwHyJcQihlVGJevPWmybLCMf1Frw8ZZLG+8q8mzoQD5",
-	"BMtAGdRbW0ugCk0pi4nzFTLkq50MeFET5BDYGzuFNoMaQ/jNeb1j3W3uH8jg7mTqTuiOPZ4wTqO3OZZG",
-	"I4uZp18b40lnlbGvvssqvHt1/hLats26T5APOzSdn1HnyI0/UMGC7Mp75x8Z+IRIj7H4KOu9UPcgdJZ9",
-	"rt+4qbE/U6idDfRICOw+kn3YfzLrc36DXMzeBfK3jNw8tvShO/S1pwnk8NVgQ7DBil2Drev3ga0u6EMm",
-	"p56IiQcTKx0X0BYr+jzPj2LoebzoWVogos8O6wTJ+/fI+HQq0J/LNvtyOu3F+QC7NpQn21RyHgs2c7nB",
-	"2NVylPW0VqCi8YYXt4IohT8m9OQvGp5t/v2wzsRPv7wVNNEa8tXXTWZmzHWqmbETJ+c1hcKbWlIPOVyF",
-	"mgozMQXe/3n/FwWlUV3cXKsaPSqnRFhOyGrZxrpMZn849R4Ejmh6gez8ezgVl4ZL8bnzCTKYkw/J24vT",
-	"s9MzSZGryWJtIIfzuCW84VmMdlCKZsmqdoHlV6iAgvdaQw43LnCUNUj1ocCXTi/EsHCWycYzWEe0cmrw",
-	"ITi7mUgPUWB7WO2RnX1DcSPpaYT78uzsaK531To6363WW9FapUlhwynDsRyS0W+OiCMNrB7/l6jVKueJ",
-	"rE1VoV+kmidAqgnN/e/eOCFEFJUhBAqRACM5M2gC+Zi6KfWU90fid9HgC/NsmKqD2j3qUds1DHqPi77Y",
-	"35jAqLQLXYRBFagxsEftglzx7X9Rg2vL5C2W6pb8nLxaG26kA/LhrmgMR+1ou1gpFHYSzHY8WyVLRRrJ",
-	"UPnHLtzU6fhdGCf0Qe334nNRiy0kIc7xk8Hn645D6/F6RSPVVMq6uevroXVBug4aLMeLKxlGbdRKeWv1",
-	"lGn9BAuXyTgqrceKODbhcAmitVF9YT09YdzZ7iY/28rQsZ9BkpGnINL+I/RwSf9/c+qCGyzNJxni6aki",
-	"Y6Op/pVabft3AAAA///GNxfjxQ0AAA==",
+	"H4sIAAAAAAAC/+xWzW4btxN/FWL+/+PacuIWKBbIwU7dwkUORp2gB0WH0XIkMdklt+SsakXQwxQ95An6",
+	"BHqxYkhp9eF1bdUK2kNOWlLD+fzNb2YOhatqZ8lygHwOoZhQhfHztSdNlg2W8YhaGzbOYnnjXU2eDQXI",
+	"R1gGyqDeupoD1nVpChRpOY6cr5Ahh6YxGjLgWU2QQ2Bv7BgyuDsZuxO6Y48njOOoYYql0cgi5unXxnjS",
+	"sFhkQBWackdnunmW0hpD+M15vaO3vfynqrPK2FffZRXevTp/CQsx1FrN+zs5ytooWquD1qwbfqCCYZHB",
+	"lffOH1iKEZEeYvFRvnfj2HeolewyfW2ZvMXylvyUfOvIw7bINpVoNauHKsSXiuLTQdbhzD2jb9zY2J8p",
+	"1M4GOjBudh/JPh50EuuK+Aa5mLwL5G8ZuTm0A0L76P+eRpDD/3qbPuutmqy3pX7fsZWCLs/k1YHuHLtt",
+	"svRcnLZY0f08H9Qk5/9eF0bvn9h+kvfvkfEL5f7BXC6y58NpL85H0LWB/LqNsWAzFQ3Grj47WzhQ0XjD",
+	"s1vxKIU/JPTkLxqebE4/rDPx0y9vxZsoDfnq301mJsx1qpmxIyfvNYXCmzpNFrgKNRVmZApcfl7+SUFp",
+	"VBc316pGj8op4aITslquMbLt8vPyD6feg7gjo61Adv49nIpJw6XY3PkLMpiSD8nai9Oz0zNJkavJYm0g",
+	"h/N4JbjhSYy2VwpnRWp0geVXoBBZ/lpDDjcucKQ1SPWhwJdOz0SwcJbJ8t787H0IaYimIj8Gge2ZvQd2",
+	"9g3Fi8Sn0d2XZ2dHM73L1tH4brXeCtcqTQobThmO5ZCMfnNEP9Jw6rB/iVqtci42vz2iza7x2OHBWkwl",
+	"ObUWzCA0VYV+lvCXkqOa0Cx/98YJOCPB9SFQiGAcyJteE8jHMo6pA2o/Er+LAs+suWGqnkQ9kRs3cxy9",
+	"x1lXFt6YwKi0C22EQRWoMbBH7cJ/rzYrUoO8v0tn/cFisF26FBg7CW07uq0CppINZNw9yA+bqh2fH+Lu",
+	"8CRieHGfbmNzS4hT/GTwa98ego3XK4CrplLWTV1Xd6/B0fZ2bz6cXcnIXsSJIhtpB2TWi2q4TMJxHnms",
+	"iCM99OcgEynOKFjvGDBsZXeBkG1l7tjLomTkS4B6f1V/+uD7iu9j4fuCGyzNJ1m70nIpg76p/hbmi8Vf",
+	"AQAA///HLcjVfhAAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

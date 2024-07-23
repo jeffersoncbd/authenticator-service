@@ -20,7 +20,7 @@ func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
 	rows, err := api.store.ListUsers(r.Context())
 	if err != nil {
 		api.logger.Error("Falha ao listar usuários", zap.Error(err))
-		return spec.GetUsersJSON500Response(spec.Error{Feedback: "Falha ao listar usuários, tente novamente em alguns minutos..."})
+		return spec.GetUsersJSON500Response(spec.InternalServerError{})
 	}
 
 	var users []spec.UserData
@@ -57,13 +57,13 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		api.logger.Error("Falha ao consultar email", zap.Error(err), zap.String("email", string(body.Email)))
-		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
+		return spec.PostUsersJSON500Response(spec.InternalServerError{})
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
-		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
+		return spec.PostUsersJSON500Response(spec.InternalServerError{})
 	}
 	err = api.store.InsertUser(r.Context(), postgresql.InsertUserParams{
 		Email:    string(body.Email),
@@ -72,7 +72,7 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 	})
 	if err != nil {
 		api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
-		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Falha no cadastro, tente novamente em alguns minutos"})
+		return spec.PostUsersJSON500Response(spec.InternalServerError{})
 	}
 
 	return nil
@@ -97,6 +97,7 @@ func (api API) PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail
 		Status: pgtype.Text{String: body.Status.ToValue(), Valid: true},
 	}); err != nil {
 		api.logger.Error("Falha ao atualizar status do usuário", zap.Error(err))
+		return spec.PatchUsersByEmailJSON500Response(spec.InternalServerError{})
 	}
 
 	return nil
