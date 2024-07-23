@@ -10,8 +10,9 @@ import (
 )
 
 type Application struct {
-	ID   uuid.UUID
-	Name string
+	ID     uuid.UUID
+	Name   string
+	Secret pgtype.UUID
 }
 
 type User struct {

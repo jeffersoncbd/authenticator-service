@@ -12,7 +12,7 @@ import (
 )
 
 const getApplication = `-- name: GetApplication :one
-SELECT id, name FROM applications
+SELECT id, name, secret FROM applications
 WHERE
     id = $1
 `
@@ -20,12 +20,12 @@ WHERE
 func (q *Queries) GetApplication(ctx context.Context, id uuid.UUID) (Application, error) {
 	row := q.db.QueryRow(ctx, getApplication, id)
 	var i Application
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(&i.ID, &i.Name, &i.Secret)
 	return i, err
 }
 
 const getApplicationByName = `-- name: GetApplicationByName :one
-SELECT id, name FROM applications
+SELECT id, name, secret FROM applications
 WHERE
     name = $1
 `
@@ -33,17 +33,20 @@ WHERE
 func (q *Queries) GetApplicationByName(ctx context.Context, name string) (Application, error) {
 	row := q.db.QueryRow(ctx, getApplicationByName, name)
 	var i Application
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(&i.ID, &i.Name, &i.Secret)
 	return i, err
 }
 
-const insertApplication = `-- name: InsertApplication :exec
+const insertApplication = `-- name: InsertApplication :one
 INSERT INTO applications
     ( "name" ) VALUES
     ( $1)
+RETURNING "id"
 `
 
-func (q *Queries) InsertApplication(ctx context.Context, name string) error {
-	_, err := q.db.Exec(ctx, insertApplication, name)
-	return err
+func (q *Queries) InsertApplication(ctx context.Context, name string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertApplication, name)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }

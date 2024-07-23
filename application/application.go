@@ -1,7 +1,7 @@
 package main
 
 import (
-	api "authenticator/internal"
+	api "authenticator/internal/api"
 	"authenticator/internal/databases/postgresql"
 	"authenticator/internal/middlewares"
 	"authenticator/internal/spec"
@@ -64,15 +64,21 @@ func run(ctx context.Context) error {
 	}
 
 	store := postgresql.New(pool)
-	_, err = store.GetApplicationByName(ctx, "authenticator")
+	authenticatorData, err := store.GetApplicationByName(ctx, "authenticator")
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			store.InsertApplication(ctx, "authenticator")
+			id, err := store.InsertApplication(ctx, "authenticator")
+			if err != nil {
+				return err
+			}
 			fmt.Println(" \033[0;32m✔\033[0m authenticator application inserted")
+			authenticatorData.ID = id
 		} else {
 			return err
 		}
 	}
+	fmt.Printf(" \033[1;35m~\033[0m Authenticator ID: %s\n", authenticatorData.ID)
+
 	_, err = store.GetUser(ctx, os.Getenv("ROOT_MAIL"))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
