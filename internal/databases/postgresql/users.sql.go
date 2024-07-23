@@ -12,7 +12,7 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT email, name, password, status FROM users
+SELECT email, name, password, status, groups FROM users
 WHERE
     email = $1
 `
@@ -25,24 +25,31 @@ func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
 		&i.Name,
 		&i.Password,
 		&i.Status,
+		&i.Groups,
 	)
 	return i, err
 }
 
 const insertUser = `-- name: InsertUser :exec
 INSERT INTO users
-    ( "email", "name", "password" ) VALUES
-    ( $1, $2, $3 )
+    ( "email", "name", "password", "groups" ) VALUES
+    ( $1, $2, $3, $4 )
 `
 
 type InsertUserParams struct {
 	Email    string
 	Name     string
 	Password string
+	Groups   []byte
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
-	_, err := q.db.Exec(ctx, insertUser, arg.Email, arg.Name, arg.Password)
+	_, err := q.db.Exec(ctx, insertUser,
+		arg.Email,
+		arg.Name,
+		arg.Password,
+		arg.Groups,
+	)
 	return err
 }
 

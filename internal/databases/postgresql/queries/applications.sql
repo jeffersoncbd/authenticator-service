@@ -10,6 +10,6 @@ WHERE
 
 -- name: InsertApplication :one
 INSERT INTO applications
-    ( "name" ) VALUES
-    ( $1)
+    ( "name", "keys" ) VALUES
+    ( $1, $2 )
 RETURNING "id";

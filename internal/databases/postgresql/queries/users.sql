@@ -9,8 +9,8 @@ WHERE
 
 -- name: InsertUser :exec
 INSERT INTO users
-    ( "email", "name", "password" ) VALUES
-    ( $1, $2, $3 );
+    ( "email", "name", "password", "groups" ) VALUES
+    ( $1, $2, $3, $4 );
 
 -- name: UpdateUserStatus :exec
 UPDATE users

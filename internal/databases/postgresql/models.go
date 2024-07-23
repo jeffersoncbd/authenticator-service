@@ -13,6 +13,14 @@ type Application struct {
 	ID     uuid.UUID
 	Name   string
 	Secret pgtype.UUID
+	Keys   []string
+}
+
+type Group struct {
+	ID            uuid.UUID
+	Name          string
+	ApplicationID uuid.UUID
+	Permissions   []byte
 }
 
 type User struct {
@@ -20,4 +28,5 @@ type User struct {
 	Name     string
 	Password string
 	Status   pgtype.Text
+	Groups   []byte
 }

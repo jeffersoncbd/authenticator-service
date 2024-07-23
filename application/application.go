@@ -4,6 +4,7 @@ import (
 	api "authenticator/internal/api"
 	"authenticator/internal/databases/postgresql"
 	"authenticator/internal/middlewares"
+	"authenticator/internal/root"
 	"authenticator/internal/spec"
 	"context"
 	"errors"
@@ -16,12 +17,10 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/phenpessoa/gutils/netutils/httputils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
@@ -64,37 +63,9 @@ func run(ctx context.Context) error {
 	}
 
 	store := postgresql.New(pool)
-	authenticatorData, err := store.GetApplicationByName(ctx, "authenticator")
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			id, err := store.InsertApplication(ctx, "authenticator")
-			if err != nil {
-				return err
-			}
-			fmt.Println(" \033[0;32m✔\033[0m authenticator application inserted")
-			authenticatorData.ID = id
-		} else {
-			return err
-		}
-	}
-	fmt.Printf(" \033[1;35m~\033[0m Authenticator ID: %s\n", authenticatorData.ID)
 
-	_, err = store.GetUser(ctx, os.Getenv("ROOT_MAIL"))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			hash, err := bcrypt.GenerateFromPassword([]byte(os.Getenv("ROOT_PASS")), bcrypt.DefaultCost)
-			if err != nil {
-				return err
-			}
-			store.InsertUser(ctx, postgresql.InsertUserParams{
-				Email:    os.Getenv("ROOT_MAIL"),
-				Name:     "root",
-				Password: string(hash),
-			})
-			fmt.Println(" \033[0;32m✔\033[0m root user inserted")
-		} else {
-			return err
-		}
+	if err := root.Run(store, ctx); err != nil {
+		return err
 	}
 
 	jwtMiddleware := middlewares.NewJwtMiddleware(logger)
