@@ -22,7 +22,7 @@ type middleware func(http.Handler) http.Handler
 func (m *JwtMiddleware) Middleware() middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/login" {
+			if r.URL.Path == "/login" || strings.HasPrefix(r.URL.Path, "/docs") {
 				next.ServeHTTP(w, r)
 				return
 			}
