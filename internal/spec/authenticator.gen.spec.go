@@ -71,6 +71,17 @@ type LoginResponse struct {
 	Token    string `json:"token"`
 }
 
+// NewApplication defines model for NewApplication.
+type NewApplication struct {
+	Name string `json:"name"`
+}
+
+// NewApplicationResponse defines model for NewApplicationResponse.
+type NewApplicationResponse struct {
+	Feedback string `json:"feedback"`
+	ID       string `json:"id"`
+}
+
 // NewUser defines model for NewUser.
 type NewUser struct {
 	Email    openapi_types.Email `json:"email" validate:"required,email"`
@@ -128,6 +139,9 @@ func (t *UserStatus) FromValue(value string) error {
 	return fmt.Errorf("unknown enum value: %v", value)
 }
 
+// PostApplicationsJSONBody defines parameters for PostApplications.
+type PostApplicationsJSONBody NewApplication
+
 // PostLoginJSONBody defines parameters for PostLogin.
 type PostLoginJSONBody Credentials
 
@@ -136,6 +150,14 @@ type PostUsersJSONBody NewUser
 
 // PatchUsersByEmailJSONBody defines parameters for PatchUsersByEmail.
 type PatchUsersByEmailJSONBody PatchUserStatus
+
+// PostApplicationsJSONRequestBody defines body for PostApplications for application/json ContentType.
+type PostApplicationsJSONRequestBody PostApplicationsJSONBody
+
+// Bind implements render.Binder.
+func (PostApplicationsJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
 
 // PostLoginJSONRequestBody defines body for PostLogin for application/json ContentType.
 type PostLoginJSONRequestBody PostLoginJSONBody
@@ -225,6 +247,46 @@ func GetApplicationsJSON401Response(body Unauthorized) *Response {
 // GetApplicationsJSON500Response is a constructor method for a GetApplications response.
 // A *Response is returned with the configured status code and content type from the spec.
 func GetApplicationsJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsJSON201Response is a constructor method for a PostApplications response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsJSON201Response(body NewApplicationResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        201,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsJSON400Response is a constructor method for a PostApplications response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsJSON401Response is a constructor method for a PostApplications response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsJSON500Response is a constructor method for a PostApplications response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -377,6 +439,9 @@ type ServerInterface interface {
 	// Lista todas as aplicações
 	// (GET /applications)
 	GetApplications(w http.ResponseWriter, r *http.Request) *Response
+	// Cadastra uma aplicação
+	// (POST /applications)
+	PostApplications(w http.ResponseWriter, r *http.Request) *Response
 	// Autentica usuário
 	// (POST /login)
 	PostLogin(w http.ResponseWriter, r *http.Request) *Response
@@ -405,6 +470,26 @@ func (siw *ServerInterfaceWrapper) GetApplications(w http.ResponseWriter, r *htt
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.GetApplications(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// PostApplications operation middleware
+func (siw *ServerInterfaceWrapper) PostApplications(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.PostApplications(w, r)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -619,6 +704,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 
 	r.Route(options.BaseURL, func(r chi.Router) {
 		r.Get("/applications", wrapper.GetApplications)
+		r.Post("/applications", wrapper.PostApplications)
 		r.Post("/login", wrapper.PostLogin)
 		r.Get("/users", wrapper.GetUsers)
 		r.Post("/users", wrapper.PostUsers)
@@ -648,24 +734,24 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYwW7bRhN+FWL+/0hbTtwCBYEc5MAtXASFUcfowdFhRI6kjclddneoWBb0MEUPeYI+",
-	"gV6smCVFkQotW7USIYAvErkc7s5+8803s5xDbLLcaNLsIJqDiyeUob/s53mqYmRltNxikii5xvTSmpws",
-	"K3IQjTB1FELeGJqDSuR3ZGyGDBEUhUogBJ7lBBE4tkqPYRHCLc1Kc6bMX3xhUQ2gtTiTe40ZdRguQrD0",
-	"Z6EsJRDdgF/Nm1ZrDOqZzPAjxSxTnaFT8e/kcqMd7bi/EVEyxPj2cVdqyy4X3lpKSLPC1O3oALZDsx3p",
-	"EO6OxuaI7tjiEePYzzDFVCXIYlb7K85ThiptzVmOPGvSHJ37ZGybFfXgf506zJR+81OY4d2b09ew2IS+",
-	"iVFY76JetSsg59YaexguXGgmqzG9Ijsle0BH3pmx0vvPixDY3JJ+3LnSLNzu5G/06drRrgjtm9th+fri",
-	"QWHaicmnh0uVSiuflCOXyPFEwL9i5GJX4XL1S/+3NIII/tdb159eVXx6jek3Xa0m6PLsWmPBE2PVPSWH",
-	"yZ2vyMmHi1/4fFA34r8N41bgSReZl9qY1VRmULq6HIQdODqKC6t4diUeldsfElqy/YIn67ufV0j8+sd7",
-	"8cZbQ1Q9XSMzYc5LLis9MvJ+Qi62Ki/LIpy7nGI1UjEuPy//IRckGPQvL4IcLQYmkCgekU5kGH2pWH5e",
-	"/m2CDyDuSF2OkY39AMeypOJU1mw9ghCmZF252qvjk+MTgcjkpDFXEMGpH5J84onfba9Rk/zAmFj+hBB+",
-	"8CKBCH4h7jftJFalHPt3Xp+cyF9sNJPmjW6g99GVLUEZ9VZ3tY0czV7vi75LIG5D+045xiBBt0ZOAI4x",
-	"QccWE+Nklh9OXu3k6Vb2NpO7w6P28xB+3BGlbWt31eYOF1ZmQWkXrAzXxIfopk35m8FiEIIrsgztrMaV",
-	"jUe2Da6Q0At8q7NxMJAFeqlUbdlHblwHpS6NY1/YoUx8cnxmktneEGp2shvVhW1Bi2dSeNvS7X6lIyzv",
-	"paEIEgqw4DJ1fZ6XBN2fHw/S4gyToML8JSmaSVGzvr8KTFC4YvmXVaZBdkfOK2zJ88KR3aqc197gW0im",
-	"L/ZP10rj6t29COX+hNK4oIlsgzglVQbSUz+oiWu27F8TV2eUJ+nh/uLf/q7RRYAKqwYJX7Twe+H92ypm",
-	"QZEF2kxNl2KuiF/rZW8+nJ1Lb7/wHYIc4DrSYXWuc2elsW9cLWbEXnJv5iAdhm9mV5/XIhjWtm2Ghw3k",
-	"9n3aFkS+RsJunmy/cSPzaOL6ZyJ7U7xXeKic/T7zps8Fpupezn3l6VYawiLbmj6Lxb8BAAD//55Q6aEd",
-	"FwAA",
+	"H4sIAAAAAAAC/+xYzW7jNhB+FWHaoxInmxYoBOzBWaRFikURNBv0kM1hIo1jbiRSS468cQI9TNHDPkGf",
+	"IC+2ICnLkiP/Ze0YC+SSyNSIHH7zzcxHPkCsslxJkmwgegATDylD99jP81TEyEJJ+xOTRNhnTM+0ykmz",
+	"IAPRAFNDIeSNoQcQif07UDpDhgiKQiQQAo9zgggMayFvoAzhlsbenClzD08sqgHUGsf2t8SMOgzLEDR9",
+	"LoSmBKJLcKs502qNq3omdf2JYrZTHaMR8d9kciUNrbm/AVFyjfHtcldqyy4X3mlKSLLA1KzpALZDsxjp",
+	"EO72btQe3bHGPcYbN8MIU5EgW7PaX+s8ZSjS1px+5LsmzdGYL0q3WVEPPnfqMBPy7W9hhndvj95AOQt9",
+	"E6Ow3kW9aldATrRWejdcOJVMWmJ6TnpEeoeOvFc3Qm4+L0JgdUtyuXPeLFzs5F/05fnVabUi4qyWr70N",
+	"pFYqn101bxlmF4bWZdWm60HoPy/nFvO1sv9od+Wl6i8r1ZUz5HhowT9n5GLdYm/qj37WNIAIfupNe3av",
+	"ati9xvSzrlYTdHl2IbHgodLinpLd1JstcnK+YAi/H9SZ+C/CuBV4kkXm2lPMYmRnELJ6vOrKcUNxoQWP",
+	"z61HfvvXhJp0v+Dh9NfvEyT+/OeD9cZZQ1S9nSIzZM49l4UcKPt9QibWIvd1FE5MTrEYiBgfvz7+TyZI",
+	"MOifnQY5agxUYKO4RzKxw+hq4OPXx/9U8BGsO1bLxMhKf4R9u6Tg1K7ZegUhjEgbv9rh/sH+gYVI5SQx",
+	"FxDBkRuy+cRDt9teo4+7gRti+88Swg2eJhDBH8T9pp2NlS/M7ps3Bwf2X6wkk+QZBdX7ZHwP8VFvKdJF",
+	"5Gh2oCda1ULchva9MIxBgmaKnAU4xgQNa0yUsbP8cnC4lqcL2dtM7g6P2u9D+HVNlBat3aVnOlyYmAXe",
+	"LpgYTokP0WWb8pdX5VUIpsgy1OMaV1YO2Ta4loSuwLfUoIEr2zSU6eDRmTJPifS5IMPHKhlvDJ0Z/TLT",
+	"XFgXVD5h8OGWVq8VTEd4+o0cr4mKnqeb48pcdhxjElTwv+bGc3LjXRWzoMhaBXt+YpQh9FJ7BLCbmJ8j",
+	"7pSwpeRoHotXyozNRaZ9+OmIyQd7OgkSCrBg39M8nq8ZseOMqCnfnwQmKEzx+K8WTbIbMk56eJ4XhvRC",
+	"SXHhDF5CSzgVvLqIUKbe3auC2JyCUCZoItsgjqfKYt0wZctWBIOnyMsqhfYlaRcBKqwaJHythT+gOgik",
+	"Gqmuijkhfl0vew/X4xN76C2dQkCOhx3pMLnwMMfe2J3oNGbEruRePoBVGO6UN7mrj+C6tm0zPGwgt+lr",
+	"KIvINhJ29srnhYXM0sR172zZG+G92Jmi/zHzps8FpuIeAxX4ax8rCItsYfqU5bcAAAD//zBtLPNqGwAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

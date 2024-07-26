@@ -144,6 +144,26 @@ components:
         - name
         - keys
       additionalProperties: false
+    NewApplication:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+      additionalProperties: false
+    NewApplicationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        feedback:
+          type: string
+      required:
+        - id
+        - feedback
+      additionalProperties: false
 
 paths:
   /login:
@@ -248,6 +268,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
+
   /users/{byEmail}:
     patch:
       security:
@@ -306,6 +327,44 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Application"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+    post:
+      security:
+        - bearerAuth: []
+      summary: Cadastra uma aplicação
+      tags:
+        - applications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewApplication"
+      responses:
+        "201":
+          description: Aplicação cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewApplicationResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           description: Unauthorized
           content:

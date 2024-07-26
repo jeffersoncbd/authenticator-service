@@ -1,10 +1,14 @@
 package api
 
 import (
+	"authenticator/internal/databases/postgresql"
 	"authenticator/internal/permissions"
 	"authenticator/internal/spec"
+	"encoding/json"
+	"errors"
 	"net/http"
 
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -33,4 +37,43 @@ func (api API) GetApplications(w http.ResponseWriter, r *http.Request) *spec.Res
 	}
 
 	return spec.GetApplicationsJSON200Response(applications)
+}
+
+// Cadastra uma aplicação
+// (POST /applications)
+func (api API) PostApplications(w http.ResponseWriter, r *http.Request) *spec.Response {
+	if err := permissions.Check(r.Context(), applicationsIdentifier, permissions.ToWrite); err != nil {
+		return spec.GetApplicationsJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+
+	var application spec.NewApplication
+
+	err := json.NewDecoder(r.Body).Decode(&application)
+	if err != nil {
+		return spec.PostApplicationsJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
+	}
+
+	if err := api.validator.validate.Struct(application); err != nil {
+		return spec.PostApplicationsJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+	}
+
+	_, err = api.store.GetApplicationByName(r.Context(), application.Name)
+	if err == nil {
+		return spec.PostApplicationsJSON400Response(spec.Error{Feedback: "Já existe uma aplicação cadastrada com esse nome"})
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		api.logger.Error("Falha ao consultar aplicação", zap.Error(err), zap.String("aplicação", application.Name))
+		return spec.PostApplicationsJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+	}
+
+	id, err := api.store.InsertApplication(r.Context(), postgresql.InsertApplicationParams{
+		Name: application.Name,
+		Keys: []string{},
+	})
+	if err != nil {
+		api.logger.Error("Falha ao cadastrar nova aplicação", zap.Error(err), zap.String("aplicação", application.Name))
+		return spec.PostApplicationsJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+	}
+
+	return spec.PostApplicationsJSON201Response(spec.NewApplicationResponse{Feedback: "aplicação cadastrada", ID: id.String()})
 }

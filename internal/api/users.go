@@ -55,7 +55,7 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+		return spec.PostUsersJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
 	}
 
 	if err := api.validator.validate.Struct(user); err != nil {
