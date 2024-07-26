@@ -1,20 +1,28 @@
 package middlewares
 
 import (
+	"authenticator/internal/databases/postgresql"
+	permissionsHelpers "authenticator/internal/permissions"
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
 type JwtMiddleware struct {
 	logger *zap.Logger
+	store  *postgresql.Queries
 }
 
-func NewJwtMiddleware(logger *zap.Logger) *JwtMiddleware {
-	return &JwtMiddleware{logger}
+func NewJwtMiddleware(logger *zap.Logger, pool *pgxpool.Pool) *JwtMiddleware {
+	store := postgresql.New(pool)
+	return &JwtMiddleware{logger, store}
 }
 
 type middleware func(http.Handler) http.Handler
@@ -33,7 +41,16 @@ func (m *JwtMiddleware) Middleware() middleware {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("método de assinatura inesperado: %v", token.Header["alg"])
 				}
-				return []byte("implementar-depois"), nil
+
+				claims, _ := token.Claims.(jwt.MapClaims)
+
+				application, err := m.store.GetApplication(r.Context(), uuid.MustParse(fmt.Sprintf("%v", claims["aud"])))
+				if err != nil {
+					m.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
+					return nil, fmt.Errorf("internal server error")
+				}
+
+				return []byte(application.Secret.String()), nil
 			})
 
 			if err != nil {
@@ -48,9 +65,14 @@ func (m *JwtMiddleware) Middleware() middleware {
 				return
 			}
 
-			// email := fmt.Sprintf("%v", claims["sub"])
+			permissionsString := fmt.Sprintf("%v", claims["roles"])
 
-			next.ServeHTTP(w, r)
+			permissions := make(map[string]*int)
+			json.Unmarshal([]byte(permissionsString), &permissions)
+
+			ctx := context.WithValue(r.Context(), permissionsHelpers.Key, permissions)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

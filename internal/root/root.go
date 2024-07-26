@@ -8,17 +8,20 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Run(store *postgresql.Queries, ctx context.Context) error {
+func Run(pool *pgxpool.Pool, ctx context.Context) error {
+	store := postgresql.New(pool)
+
 	const appName = "authenticator"
 
 	application, err := store.GetApplicationByName(ctx, appName)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			id, err := store.InsertApplication(ctx, postgresql.InsertApplicationParams{
-				Name: appName, Keys: []string{"users"},
+				Name: appName, Keys: []string{"users", "applications"},
 			})
 			if err != nil {
 				return err
@@ -39,7 +42,7 @@ func Run(store *postgresql.Queries, ctx context.Context) error {
 			id, err := store.InsertGroup(ctx, postgresql.InsertGroupParams{
 				Name:          "root",
 				ApplicationID: application.ID,
-				Permissions:   []byte(`{ "users": 7 }`),
+				Permissions:   []byte(`{ "users": 7, "applications": 7 }`),
 			})
 			if err != nil {
 				return err

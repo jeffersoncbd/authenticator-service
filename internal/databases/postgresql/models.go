@@ -12,7 +12,7 @@ import (
 type Application struct {
 	ID     uuid.UUID
 	Name   string
-	Secret pgtype.UUID
+	Secret uuid.UUID
 	Keys   []string
 }
 

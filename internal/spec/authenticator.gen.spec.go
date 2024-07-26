@@ -27,13 +27,6 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
-// Defines values for InternalServerErrorFeedback.
-var (
-	UnknownInternalServerErrorFeedback = InternalServerErrorFeedback{}
-
-	InternalServerErrorFeedbackInternalServerError = InternalServerErrorFeedback{"internal server error"}
-)
-
 // Defines values for UserStatus.
 var (
 	UnknownUserStatus = UserStatus{}
@@ -42,6 +35,18 @@ var (
 
 	UserStatusInactive = UserStatus{"inactive"}
 )
+
+// Application defines model for Application.
+type Application struct {
+	ID   string   `json:"id"`
+	Keys []string `json:"keys"`
+	Name string   `json:"name"`
+}
+
+// BasicResponse defines model for BasicResponse.
+type BasicResponse struct {
+	Feedback string `json:"feedback"`
+}
 
 // Credentials defines model for Credentials.
 type Credentials struct {
@@ -57,12 +62,20 @@ type Error struct {
 
 // InternalServerError defines model for InternalServerError.
 type InternalServerError struct {
-	Feedback *InternalServerErrorFeedback `json:"feedback,omitempty"`
+	Feedback string `json:"feedback"`
 }
 
 // LoginResponse defines model for LoginResponse.
 type LoginResponse struct {
-	Token string `json:"token"`
+	Feedback string `json:"feedback"`
+	Token    string `json:"token"`
+}
+
+// NewUser defines model for NewUser.
+type NewUser struct {
+	Email    openapi_types.Email `json:"email" validate:"required,email"`
+	Name     string              `json:"name" validate:"required,min=3"`
+	Password string              `json:"password" validate:"required,min=8,max=32"`
 }
 
 // PatchUserStatus defines model for PatchUserStatus.
@@ -70,47 +83,16 @@ type PatchUserStatus struct {
 	Status UserStatus `json:"status"`
 }
 
-// User defines model for User.
-type User struct {
-	Email    openapi_types.Email `json:"email" validate:"required,email"`
-	Name     string              `json:"name" validate:"required,min=3"`
-	Password string              `json:"password" validate:"required,min=8,max=32"`
+// Unauthorized defines model for Unauthorized.
+type Unauthorized struct {
+	Feedback string `json:"feedback"`
 }
 
-// UserData defines model for UserData.
-type UserData struct {
+// User defines model for User.
+type User struct {
 	Email  openapi_types.Email `json:"email"`
 	Name   string              `json:"name"`
 	Status UserStatus          `json:"status"`
-}
-
-// InternalServerErrorFeedback defines model for InternalServerError.Feedback.
-type InternalServerErrorFeedback struct {
-	value string
-}
-
-func (t *InternalServerErrorFeedback) ToValue() string {
-	return t.value
-}
-func (t InternalServerErrorFeedback) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t.value)
-}
-func (t *InternalServerErrorFeedback) UnmarshalJSON(data []byte) error {
-	var value string
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	return t.FromValue(value)
-}
-func (t *InternalServerErrorFeedback) FromValue(value string) error {
-	switch value {
-
-	case InternalServerErrorFeedbackInternalServerError.value:
-		t.value = value
-		return nil
-
-	}
-	return fmt.Errorf("unknown enum value: %v", value)
 }
 
 // UserStatus defines model for UserStatus.
@@ -150,7 +132,7 @@ func (t *UserStatus) FromValue(value string) error {
 type PostLoginJSONBody Credentials
 
 // PostUsersJSONBody defines parameters for PostUsers.
-type PostUsersJSONBody User
+type PostUsersJSONBody NewUser
 
 // PatchUsersByEmailJSONBody defines parameters for PatchUsersByEmail.
 type PatchUsersByEmailJSONBody PatchUserStatus
@@ -220,6 +202,36 @@ func (resp *Response) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.Encode(resp.body)
 }
 
+// GetApplicationsJSON200Response is a constructor method for a GetApplications response.
+// A *Response is returned with the configured status code and content type from the spec.
+func GetApplicationsJSON200Response(body []Application) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// GetApplicationsJSON401Response is a constructor method for a GetApplications response.
+// A *Response is returned with the configured status code and content type from the spec.
+func GetApplicationsJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// GetApplicationsJSON500Response is a constructor method for a GetApplications response.
+// A *Response is returned with the configured status code and content type from the spec.
+func GetApplicationsJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
 // PostLoginJSON200Response is a constructor method for a PostLogin response.
 // A *Response is returned with the configured status code and content type from the spec.
 func PostLoginJSON200Response(body LoginResponse) *Response {
@@ -240,6 +252,16 @@ func PostLoginJSON400Response(body Error) *Response {
 	}
 }
 
+// PostLoginJSON401Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
 // PostLoginJSON500Response is a constructor method for a PostLogin response.
 // A *Response is returned with the configured status code and content type from the spec.
 func PostLoginJSON500Response(body InternalServerError) *Response {
@@ -252,10 +274,20 @@ func PostLoginJSON500Response(body InternalServerError) *Response {
 
 // GetUsersJSON200Response is a constructor method for a GetUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetUsersJSON200Response(body []UserData) *Response {
+func GetUsersJSON200Response(body []User) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// GetUsersJSON401Response is a constructor method for a GetUsers response.
+// A *Response is returned with the configured status code and content type from the spec.
+func GetUsersJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
 		contentType: "application/json",
 	}
 }
@@ -270,6 +302,16 @@ func GetUsersJSON500Response(body InternalServerError) *Response {
 	}
 }
 
+// PostUsersJSON201Response is a constructor method for a PostUsers response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostUsersJSON201Response(body BasicResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        201,
+		contentType: "application/json",
+	}
+}
+
 // PostUsersJSON400Response is a constructor method for a PostUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
 func PostUsersJSON400Response(body Error) *Response {
@@ -280,12 +322,32 @@ func PostUsersJSON400Response(body Error) *Response {
 	}
 }
 
+// PostUsersJSON401Response is a constructor method for a PostUsers response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostUsersJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
 // PostUsersJSON500Response is a constructor method for a PostUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
 func PostUsersJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
+		contentType: "application/json",
+	}
+}
+
+// PatchUsersByEmailJSON200Response is a constructor method for a PatchUsersByEmail response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PatchUsersByEmailJSON200Response(body BasicResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
 		contentType: "application/json",
 	}
 }
@@ -312,6 +374,9 @@ func PatchUsersByEmailJSON500Response(body InternalServerError) *Response {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Lista todas as aplicações
+	// (GET /applications)
+	GetApplications(w http.ResponseWriter, r *http.Request) *Response
 	// Autentica usuário
 	// (POST /login)
 	PostLogin(w http.ResponseWriter, r *http.Request) *Response
@@ -330,6 +395,26 @@ type ServerInterface interface {
 type ServerInterfaceWrapper struct {
 	Handler          ServerInterface
 	ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request, err error)
+}
+
+// GetApplications operation middleware
+func (siw *ServerInterfaceWrapper) GetApplications(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.GetApplications(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
 }
 
 // PostLogin operation middleware
@@ -533,6 +618,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	}
 
 	r.Route(options.BaseURL, func(r chi.Router) {
+		r.Get("/applications", wrapper.GetApplications)
 		r.Post("/login", wrapper.PostLogin)
 		r.Get("/users", wrapper.GetUsers)
 		r.Post("/users", wrapper.PostUsers)
@@ -562,22 +648,24 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xWzW4btxN/FWL+/+PacuIWKBbIwU7dwkUORp2gB0WH0XIkMdklt+SsakXQwxQ95An6",
-	"BHqxYkhp9eF1bdUK2kNOWlLD+fzNb2YOhatqZ8lygHwOoZhQhfHztSdNlg2W8YhaGzbOYnnjXU2eDQXI",
-	"R1gGyqDeupoD1nVpChRpOY6cr5Ahh6YxGjLgWU2QQ2Bv7BgyuDsZuxO6Y48njOOoYYql0cgi5unXxnjS",
-	"sFhkQBWackdnunmW0hpD+M15vaO3vfynqrPK2FffZRXevTp/CQsx1FrN+zs5ytooWquD1qwbfqCCYZHB",
-	"lffOH1iKEZEeYvFRvnfj2HeolewyfW2ZvMXylvyUfOvIw7bINpVoNauHKsSXiuLTQdbhzD2jb9zY2J8p",
-	"1M4GOjBudh/JPh50EuuK+Aa5mLwL5G8ZuTm0A0L76P+eRpDD/3qbPuutmqy3pX7fsZWCLs/k1YHuHLtt",
-	"svRcnLZY0f08H9Qk5/9eF0bvn9h+kvfvkfEL5f7BXC6y58NpL85H0LWB/LqNsWAzFQ3Grj47WzhQ0XjD",
-	"s1vxKIU/JPTkLxqebE4/rDPx0y9vxZsoDfnq301mJsx1qpmxIyfvNYXCmzpNFrgKNRVmZApcfl7+SUFp",
-	"VBc316pGj8op4aITslquMbLt8vPyD6feg7gjo61Adv49nIpJw6XY3PkLMpiSD8nai9Oz0zNJkavJYm0g",
-	"h/N4JbjhSYy2VwpnRWp0geVXoBBZ/lpDDjcucKQ1SPWhwJdOz0SwcJbJ8t787H0IaYimIj8Gge2ZvQd2",
-	"9g3Fi8Sn0d2XZ2dHM73L1tH4brXeCtcqTQobThmO5ZCMfnNEP9Jw6rB/iVqtci42vz2iza7x2OHBWkwl",
-	"ObUWzCA0VYV+lvCXkqOa0Cx/98YJOCPB9SFQiGAcyJteE8jHMo6pA2o/Er+LAs+suWGqnkQ9kRs3cxy9",
-	"x1lXFt6YwKi0C22EQRWoMbBH7cJ/rzYrUoO8v0tn/cFisF26FBg7CW07uq0CppINZNw9yA+bqh2fH+Lu",
-	"8CRieHGfbmNzS4hT/GTwa98ego3XK4CrplLWTV1Xd6/B0fZ2bz6cXcnIXsSJIhtpB2TWi2q4TMJxHnms",
-	"iCM99OcgEynOKFjvGDBsZXeBkG1l7tjLomTkS4B6f1V/+uD7iu9j4fuCGyzNJ1m70nIpg76p/hbmi8Vf",
-	"AQAA///HLcjVfhAAAA==",
+	"H4sIAAAAAAAC/+xYwW7bRhN+FWL+/0hbTtwCBYEc5MAtXASFUcfowdFhRI6kjclddneoWBb0MEUPeYI+",
+	"gV6smCVFkQotW7USIYAvErkc7s5+8803s5xDbLLcaNLsIJqDiyeUob/s53mqYmRltNxikii5xvTSmpws",
+	"K3IQjTB1FELeGJqDSuR3ZGyGDBEUhUogBJ7lBBE4tkqPYRHCLc1Kc6bMX3xhUQ2gtTiTe40ZdRguQrD0",
+	"Z6EsJRDdgF/Nm1ZrDOqZzPAjxSxTnaFT8e/kcqMd7bi/EVEyxPj2cVdqyy4X3lpKSLPC1O3oALZDsx3p",
+	"EO6OxuaI7tjiEePYzzDFVCXIYlb7K85ThiptzVmOPGvSHJ37ZGybFfXgf506zJR+81OY4d2b09ew2IS+",
+	"iVFY76JetSsg59YaexguXGgmqzG9Ijsle0BH3pmx0vvPixDY3JJ+3LnSLNzu5G/06drRrgjtm9th+fri",
+	"QWHaicmnh0uVSiuflCOXyPFEwL9i5GJX4XL1S/+3NIII/tdb159eVXx6jek3Xa0m6PLsWmPBE2PVPSWH",
+	"yZ2vyMmHi1/4fFA34r8N41bgSReZl9qY1VRmULq6HIQdODqKC6t4diUeldsfElqy/YIn67ufV0j8+sd7",
+	"8cZbQ1Q9XSMzYc5LLis9MvJ+Qi62Ki/LIpy7nGI1UjEuPy//IRckGPQvL4IcLQYmkCgekU5kGH2pWH5e",
+	"/m2CDyDuSF2OkY39AMeypOJU1mw9ghCmZF252qvjk+MTgcjkpDFXEMGpH5J84onfba9Rk/zAmFj+hBB+",
+	"8CKBCH4h7jftJFalHPt3Xp+cyF9sNJPmjW6g99GVLUEZ9VZ3tY0czV7vi75LIG5D+045xiBBt0ZOAI4x",
+	"QccWE+Nklh9OXu3k6Vb2NpO7w6P28xB+3BGlbWt31eYOF1ZmQWkXrAzXxIfopk35m8FiEIIrsgztrMaV",
+	"jUe2Da6Q0At8q7NxMJAFeqlUbdlHblwHpS6NY1/YoUx8cnxmktneEGp2shvVhW1Bi2dSeNvS7X6lIyzv",
+	"paEIEgqw4DJ1fZ6XBN2fHw/S4gyToML8JSmaSVGzvr8KTFC4YvmXVaZBdkfOK2zJ88KR3aqc197gW0im",
+	"L/ZP10rj6t29COX+hNK4oIlsgzglVQbSUz+oiWu27F8TV2eUJ+nh/uLf/q7RRYAKqwYJX7Twe+H92ypm",
+	"QZEF2kxNl2KuiF/rZW8+nJ1Lb7/wHYIc4DrSYXWuc2elsW9cLWbEXnJv5iAdhm9mV5/XIhjWtm2Ghw3k",
+	"9n3aFkS+RsJunmy/cSPzaOL6ZyJ7U7xXeKic/T7zps8Fpupezn3l6VYawiLbmj6Lxb8BAAD//55Q6aEd",
+	"FwAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

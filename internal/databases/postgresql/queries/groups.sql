@@ -3,10 +3,10 @@ SELECT * FROM groups
 WHERE
     name = $1 AND application_id = $2;
 
--- name: GetGroup :one
-SELECT * FROM groups
+-- name: GetPermissionsGroup :one
+SELECT permissions FROM groups
 WHERE
-    id = $1 AND application_id = $2;
+    id = $1;
 
 -- name: InsertGroup :one
 INSERT INTO groups

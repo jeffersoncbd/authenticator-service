@@ -65,3 +65,34 @@ func (q *Queries) InsertApplication(ctx context.Context, arg InsertApplicationPa
 	err := row.Scan(&id)
 	return id, err
 }
+
+const listApplicaions = `-- name: ListApplicaions :many
+SELECT id, name, keys FROM applications
+ORDER BY name ASC
+`
+
+type ListApplicaionsRow struct {
+	ID   uuid.UUID
+	Name string
+	Keys []string
+}
+
+func (q *Queries) ListApplicaions(ctx context.Context) ([]ListApplicaionsRow, error) {
+	rows, err := q.db.Query(ctx, listApplicaions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListApplicaionsRow
+	for rows.Next() {
+		var i ListApplicaionsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Keys); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

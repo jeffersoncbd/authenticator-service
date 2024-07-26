@@ -11,29 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const getGroup = `-- name: GetGroup :one
-SELECT id, name, application_id, permissions FROM groups
-WHERE
-    id = $1 AND application_id = $2
-`
-
-type GetGroupParams struct {
-	ID            uuid.UUID
-	ApplicationID uuid.UUID
-}
-
-func (q *Queries) GetGroup(ctx context.Context, arg GetGroupParams) (Group, error) {
-	row := q.db.QueryRow(ctx, getGroup, arg.ID, arg.ApplicationID)
-	var i Group
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.ApplicationID,
-		&i.Permissions,
-	)
-	return i, err
-}
-
 const getGroupByName = `-- name: GetGroupByName :one
 SELECT id, name, application_id, permissions FROM groups
 WHERE
@@ -55,6 +32,19 @@ func (q *Queries) GetGroupByName(ctx context.Context, arg GetGroupByNameParams) 
 		&i.Permissions,
 	)
 	return i, err
+}
+
+const getPermissionsGroup = `-- name: GetPermissionsGroup :one
+SELECT permissions FROM groups
+WHERE
+    id = $1
+`
+
+func (q *Queries) GetPermissionsGroup(ctx context.Context, id uuid.UUID) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getPermissionsGroup, id)
+	var permissions []byte
+	err := row.Scan(&permissions)
+	return permissions, err
 }
 
 const insertGroup = `-- name: InsertGroup :one

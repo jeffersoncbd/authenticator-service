@@ -1,5 +1,5 @@
 ALTER TABLE applications ADD COLUMN
-    secret      uuid        DEFAULT gen_random_uuid();
+    "secret"      uuid      NOT NULL        DEFAULT gen_random_uuid();
 
 ---- create above / drop below ----
 

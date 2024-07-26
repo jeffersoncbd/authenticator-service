@@ -2,7 +2,6 @@ package main
 
 import (
 	api "authenticator/internal/api"
-	"authenticator/internal/databases/postgresql"
 	"authenticator/internal/middlewares"
 	"authenticator/internal/root"
 	"authenticator/internal/spec"
@@ -62,13 +61,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	store := postgresql.New(pool)
-
-	if err := root.Run(store, ctx); err != nil {
+	if err := root.Run(pool, ctx); err != nil {
 		return err
 	}
 
-	jwtMiddleware := middlewares.NewJwtMiddleware(logger)
+	jwtMiddleware := middlewares.NewJwtMiddleware(logger, pool)
 
 	r := chi.NewMux()
 	r.Use(middleware.Recoverer, httputils.ChiLogger(logger))

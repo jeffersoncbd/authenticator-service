@@ -1,3 +1,7 @@
+-- name: ListApplicaions :many
+SELECT id, name, keys FROM applications
+ORDER BY name ASC;
+
 -- name: GetApplicationByName :one
 SELECT * FROM applications
 WHERE

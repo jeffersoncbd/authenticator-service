@@ -11,6 +11,14 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    BasicResponse:
+      type: object
+      properties:
+        feedback:
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
     Credentials:
       type: object
       properties:
@@ -37,17 +45,20 @@ components:
     LoginResponse:
       type: object
       properties:
+        feedback:
+          type: string
         token:
           type: string
       required:
         - token
+        - feedback
       additionalProperties: false
     UserStatus:
       type: string
       enum:
         - active
         - inactive
-    User:
+    NewUser:
       type: object
       properties:
         name:
@@ -69,7 +80,7 @@ components:
         - email
         - password
       additionalProperties: false
-    UserData:
+    User:
       type: object
       properties:
         name:
@@ -100,13 +111,39 @@ components:
       required:
         - feedback
       additionalProperties: false
+    Unauthorized:
+      type: object
+      properties:
+        feedback:
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
     InternalServerError:
       type: object
       properties:
         feedback:
-          type: "string"
-          enum:
-            - internal server error
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        keys:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - name
+        - keys
+      additionalProperties: false
 
 paths:
   /login:
@@ -127,6 +164,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
         "400":
           description: Bad request
           content:
@@ -139,6 +182,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
+
   /users:
     get:
       security:
@@ -154,7 +198,13 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/UserData"
+                  $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
         "500":
           description: Internal Server Error
           content:
@@ -172,16 +222,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: "#/components/schemas/NewUser"
       responses:
         "201":
-          description: Resposta vazia
+          description: Usuário cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
         "400":
           description: Bad request
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
         "500":
           description: Internal Server Error
           content:
@@ -213,12 +273,45 @@ paths:
       responses:
         "200":
           description: Resposta vazia
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
         "400":
           description: Bad request
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /applications:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Lista todas as aplicações
+      tags:
+        - applications
+      responses:
+        "200":
+          description: Lista das aplicações cadastrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
         "500":
           description: Internal Server Error
           content:
