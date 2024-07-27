@@ -60,14 +60,14 @@ type Error struct {
 	Feedback string `json:"feedback"`
 }
 
+// InsertKeys defines model for InsertKeys.
+type InsertKeys struct {
+	NewKeys []string `json:"newKeys" validate:"required"`
+}
+
 // InternalServerError defines model for InternalServerError.
 type InternalServerError struct {
 	Feedback string `json:"feedback"`
-}
-
-// Keys defines model for Keys.
-type Keys struct {
-	NewKeys []string `json:"newKeys"`
 }
 
 // LoginResponse defines model for LoginResponse.
@@ -78,7 +78,7 @@ type LoginResponse struct {
 
 // NewApplication defines model for NewApplication.
 type NewApplication struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required"`
 }
 
 // NewApplicationResponse defines model for NewApplicationResponse.
@@ -97,6 +97,11 @@ type NewUser struct {
 // PatchUserStatus defines model for PatchUserStatus.
 type PatchUserStatus struct {
 	Status UserStatus `json:"status"`
+}
+
+// RemoveKey defines model for RemoveKey.
+type RemoveKey struct {
+	Key string `json:"key" validate:"required"`
 }
 
 // Unauthorized defines model for Unauthorized.
@@ -147,8 +152,11 @@ func (t *UserStatus) FromValue(value string) error {
 // PostApplicationsJSONBody defines parameters for PostApplications.
 type PostApplicationsJSONBody NewApplication
 
+// DeleteApplicationsIDKeysJSONBody defines parameters for DeleteApplicationsIDKeys.
+type DeleteApplicationsIDKeysJSONBody RemoveKey
+
 // PostApplicationsIDKeysJSONBody defines parameters for PostApplicationsIDKeys.
-type PostApplicationsIDKeysJSONBody Keys
+type PostApplicationsIDKeysJSONBody InsertKeys
 
 // PostLoginJSONBody defines parameters for PostLogin.
 type PostLoginJSONBody Credentials
@@ -164,6 +172,14 @@ type PostApplicationsJSONRequestBody PostApplicationsJSONBody
 
 // Bind implements render.Binder.
 func (PostApplicationsJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
+
+// DeleteApplicationsIDKeysJSONRequestBody defines body for DeleteApplicationsIDKeys for application/json ContentType.
+type DeleteApplicationsIDKeysJSONRequestBody DeleteApplicationsIDKeysJSONBody
+
+// Bind implements render.Binder.
+func (DeleteApplicationsIDKeysJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -303,6 +319,46 @@ func PostApplicationsJSON401Response(body Unauthorized) *Response {
 // PostApplicationsJSON500Response is a constructor method for a PostApplications response.
 // A *Response is returned with the configured status code and content type from the spec.
 func PostApplicationsJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
+// DeleteApplicationsIDKeysJSON200Response is a constructor method for a DeleteApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func DeleteApplicationsIDKeysJSON200Response(body BasicResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// DeleteApplicationsIDKeysJSON400Response is a constructor method for a DeleteApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func DeleteApplicationsIDKeysJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// DeleteApplicationsIDKeysJSON401Response is a constructor method for a DeleteApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func DeleteApplicationsIDKeysJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// DeleteApplicationsIDKeysJSON500Response is a constructor method for a DeleteApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func DeleteApplicationsIDKeysJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -498,7 +554,10 @@ type ServerInterface interface {
 	// Cadastra uma aplicação
 	// (POST /applications)
 	PostApplications(w http.ResponseWriter, r *http.Request) *Response
-	// Adiciona uma chave de permissão na aplicação
+	// Remove uma chave de permissão do cadastro da aplicação
+	// (DELETE /applications/{id}/keys)
+	DeleteApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id string) *Response
+	// Adiciona chaves de permissão no cadastro de uma aplicação
 	// (POST /applications/{id}/keys)
 	PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Autentica usuário
@@ -549,6 +608,34 @@ func (siw *ServerInterfaceWrapper) PostApplications(w http.ResponseWriter, r *ht
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.PostApplications(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// DeleteApplicationsIDKeys operation middleware
+func (siw *ServerInterfaceWrapper) DeleteApplicationsIDKeys(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.DeleteApplicationsIDKeys(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -792,6 +879,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	r.Route(options.BaseURL, func(r chi.Router) {
 		r.Get("/applications", wrapper.GetApplications)
 		r.Post("/applications", wrapper.PostApplications)
+		r.Delete("/applications/{id}/keys", wrapper.DeleteApplicationsIDKeys)
 		r.Post("/applications/{id}/keys", wrapper.PostApplicationsIDKeys)
 		r.Post("/login", wrapper.PostLogin)
 		r.Get("/users", wrapper.GetUsers)
@@ -822,26 +910,28 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"AA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

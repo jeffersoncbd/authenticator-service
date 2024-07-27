@@ -91,7 +91,7 @@ func (api API) PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id
 		return spec.PostApplicationsIDKeysJSON400Response(spec.Error{Feedback: "ID inválido"})
 	}
 
-	var body spec.Keys
+	var body spec.InsertKeys
 
 	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
@@ -99,7 +99,7 @@ func (api API) PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id
 	}
 
 	if err := api.validator.validate.Struct(body); err != nil {
-		return spec.PostApplicationsJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+		return spec.PostApplicationsIDKeysJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
 	}
 
 	err = api.store.InsertKey(r.Context(), postgresql.InsertKeyParams{ID: applicationId, ArrayCat: body.NewKeys})
@@ -109,4 +109,36 @@ func (api API) PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id
 	}
 
 	return spec.PostApplicationsIDKeysJSON200Response(spec.BasicResponse{Feedback: "chave adicionada"})
+}
+
+// Remove uma chave de permissão do cadastro da aplicação
+// (DELETE /applications/{id}/keys)
+func (api API) DeleteApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id string) *spec.Response {
+	if err := permissions.Check(r.Context(), applicationsIdentifier, permissions.ToDelete); err != nil {
+		return spec.DeleteApplicationsIDKeysJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+
+	applicationId, err := uuid.Parse(id)
+	if err != nil {
+		return spec.DeleteApplicationsIDKeysJSON400Response(spec.Error{Feedback: "ID inválido"})
+	}
+
+	var body spec.RemoveKey
+
+	err = json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		return spec.DeleteApplicationsIDKeysJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
+	}
+
+	if err := api.validator.validate.Struct(body); err != nil {
+		return spec.DeleteApplicationsIDKeysJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+	}
+
+	err = api.store.RemoveKey(r.Context(), postgresql.RemoveKeyParams{ID: applicationId, ArrayRemove: body.Key})
+	if err != nil {
+		api.logger.Error("Falha ao remover chave da aplicação", zap.Error(err), zap.String("aplicação", id))
+		return spec.DeleteApplicationsIDKeysJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+	}
+
+	return spec.DeleteApplicationsIDKeysJSON200Response(spec.BasicResponse{Feedback: "chave removida"})
 }

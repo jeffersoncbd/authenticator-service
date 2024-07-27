@@ -25,3 +25,8 @@ UPDATE applications
         FROM unnest(array_cat(keys, $1)) AS unnested_keys
     )
     WHERE id = $2;
+
+-- name: RemoveKey :exec
+UPDATE applications
+    SET keys = array_remove(keys, $1)
+    WHERE id = $2;

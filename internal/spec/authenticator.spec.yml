@@ -149,6 +149,8 @@ components:
       properties:
         name:
           type: string
+          x-go-extra-tags:
+            validate: required
       required:
         - name
       additionalProperties: false
@@ -164,15 +166,27 @@ components:
         - id
         - feedback
       additionalProperties: false
-    Keys:
+    InsertKeys:
       type: object
       properties:
         newKeys:
           type: array
           items:
             type: string
+          x-go-extra-tags:
+            validate: required
       required:
         - newKeys
+      additionalProperties: false
+    RemoveKey:
+      type: object
+      properties:
+        key:
+          type: string
+          x-go-extra-tags:
+            validate: required
+      required:
+        - key
       additionalProperties: false
 
 paths:
@@ -391,7 +405,7 @@ paths:
     post:
       security:
         - bearerAuth: []
-      summary: Adiciona uma chave de permissão na aplicação
+      summary: Adiciona chaves de permissão no cadastro de uma aplicação
       tags:
         - applications
         - keys
@@ -409,10 +423,57 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Keys"
+              $ref: "#/components/schemas/InsertKeys"
       responses:
         "200":
           description: Chave adicionada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Remove uma chave de permissão do cadastro da aplicação
+      tags:
+        - applications
+        - keys
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoveKey"
+      responses:
+        "200":
+          description: Chave removida
           content:
             application/json:
               schema:

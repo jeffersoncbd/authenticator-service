@@ -115,3 +115,19 @@ func (q *Queries) ListApplicaions(ctx context.Context) ([]ListApplicaionsRow, er
 	}
 	return items, nil
 }
+
+const removeKey = `-- name: RemoveKey :exec
+UPDATE applications
+    SET keys = array_remove(keys, $1)
+    WHERE id = $2
+`
+
+type RemoveKeyParams struct {
+	ArrayRemove interface{}
+	ID          uuid.UUID
+}
+
+func (q *Queries) RemoveKey(ctx context.Context, arg RemoveKeyParams) error {
+	_, err := q.db.Exec(ctx, removeKey, arg.ArrayRemove, arg.ID)
+	return err
+}
