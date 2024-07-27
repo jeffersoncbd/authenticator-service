@@ -164,6 +164,16 @@ components:
         - id
         - feedback
       additionalProperties: false
+    Keys:
+      type: object
+      properties:
+        newKeys:
+          type: array
+          items:
+            type: string
+      required:
+        - newKeys
+      additionalProperties: false
 
 paths:
   /login:
@@ -339,7 +349,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
-
     post:
       security:
         - bearerAuth: []
@@ -359,6 +368,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NewApplicationResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+
+  /applications/{id}/keys:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Adiciona uma chave de permissão na aplicação
+      tags:
+        - applications
+        - keys
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Keys"
+      responses:
+        "200":
+          description: Chave adicionada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
         "400":
           description: Bad request
           content:

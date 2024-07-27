@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
@@ -76,4 +77,36 @@ func (api API) PostApplications(w http.ResponseWriter, r *http.Request) *spec.Re
 	}
 
 	return spec.PostApplicationsJSON201Response(spec.NewApplicationResponse{Feedback: "aplicação cadastrada", ID: id.String()})
+}
+
+// Adiciona uma chave de permissão na aplicação
+// (POST /applications/{id}/keys)
+func (api API) PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id string) *spec.Response {
+	if err := permissions.Check(r.Context(), applicationsIdentifier, permissions.ToRead); err != nil {
+		return spec.PostApplicationsIDKeysJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+
+	applicationId, err := uuid.Parse(id)
+	if err != nil {
+		return spec.PostApplicationsIDKeysJSON400Response(spec.Error{Feedback: "ID inválido"})
+	}
+
+	var body spec.Keys
+
+	err = json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		return spec.PostApplicationsIDKeysJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
+	}
+
+	if err := api.validator.validate.Struct(body); err != nil {
+		return spec.PostApplicationsJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+	}
+
+	err = api.store.InsertKey(r.Context(), postgresql.InsertKeyParams{ID: applicationId, ArrayCat: body.NewKeys})
+	if err != nil {
+		api.logger.Error("Falha ao adicionar chave à aplicação", zap.Error(err), zap.String("aplicação", id))
+		return spec.PostApplicationsIDKeysJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+	}
+
+	return spec.PostApplicationsIDKeysJSON200Response(spec.BasicResponse{Feedback: "chave adicionada"})
 }

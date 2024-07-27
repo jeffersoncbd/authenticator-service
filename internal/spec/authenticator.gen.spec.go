@@ -65,6 +65,11 @@ type InternalServerError struct {
 	Feedback string `json:"feedback"`
 }
 
+// Keys defines model for Keys.
+type Keys struct {
+	NewKeys []string `json:"newKeys"`
+}
+
 // LoginResponse defines model for LoginResponse.
 type LoginResponse struct {
 	Feedback string `json:"feedback"`
@@ -142,6 +147,9 @@ func (t *UserStatus) FromValue(value string) error {
 // PostApplicationsJSONBody defines parameters for PostApplications.
 type PostApplicationsJSONBody NewApplication
 
+// PostApplicationsIDKeysJSONBody defines parameters for PostApplicationsIDKeys.
+type PostApplicationsIDKeysJSONBody Keys
+
 // PostLoginJSONBody defines parameters for PostLogin.
 type PostLoginJSONBody Credentials
 
@@ -156,6 +164,14 @@ type PostApplicationsJSONRequestBody PostApplicationsJSONBody
 
 // Bind implements render.Binder.
 func (PostApplicationsJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
+
+// PostApplicationsIDKeysJSONRequestBody defines body for PostApplicationsIDKeys for application/json ContentType.
+type PostApplicationsIDKeysJSONRequestBody PostApplicationsIDKeysJSONBody
+
+// Bind implements render.Binder.
+func (PostApplicationsIDKeysJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -287,6 +303,46 @@ func PostApplicationsJSON401Response(body Unauthorized) *Response {
 // PostApplicationsJSON500Response is a constructor method for a PostApplications response.
 // A *Response is returned with the configured status code and content type from the spec.
 func PostApplicationsJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDKeysJSON200Response is a constructor method for a PostApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDKeysJSON200Response(body BasicResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDKeysJSON400Response is a constructor method for a PostApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDKeysJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDKeysJSON401Response is a constructor method for a PostApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDKeysJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDKeysJSON500Response is a constructor method for a PostApplicationsIDKeys response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDKeysJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -442,6 +498,9 @@ type ServerInterface interface {
 	// Cadastra uma aplicação
 	// (POST /applications)
 	PostApplications(w http.ResponseWriter, r *http.Request) *Response
+	// Adiciona uma chave de permissão na aplicação
+	// (POST /applications/{id}/keys)
+	PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Autentica usuário
 	// (POST /login)
 	PostLogin(w http.ResponseWriter, r *http.Request) *Response
@@ -490,6 +549,34 @@ func (siw *ServerInterfaceWrapper) PostApplications(w http.ResponseWriter, r *ht
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.PostApplications(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// PostApplicationsIDKeys operation middleware
+func (siw *ServerInterfaceWrapper) PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.PostApplicationsIDKeys(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -705,6 +792,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	r.Route(options.BaseURL, func(r chi.Router) {
 		r.Get("/applications", wrapper.GetApplications)
 		r.Post("/applications", wrapper.PostApplications)
+		r.Post("/applications/{id}/keys", wrapper.PostApplicationsIDKeys)
 		r.Post("/login", wrapper.PostLogin)
 		r.Get("/users", wrapper.GetUsers)
 		r.Post("/users", wrapper.PostUsers)
@@ -734,24 +822,26 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYzW7jNhB+FWHaoxInmxYoBOzBWaRFikURNBv0kM1hIo1jbiRSS468cQI9TNHDPkGf",
-	"IC+2ICnLkiP/Ze0YC+SSyNSIHH7zzcxHPkCsslxJkmwgegATDylD99jP81TEyEJJ+xOTRNhnTM+0ykmz",
-	"IAPRAFNDIeSNoQcQif07UDpDhgiKQiQQAo9zgggMayFvoAzhlsbenClzD08sqgHUGsf2t8SMOgzLEDR9",
-	"LoSmBKJLcKs502qNq3omdf2JYrZTHaMR8d9kciUNrbm/AVFyjfHtcldqyy4X3mlKSLLA1KzpALZDsxjp",
-	"EO72btQe3bHGPcYbN8MIU5EgW7PaX+s8ZSjS1px+5LsmzdGYL0q3WVEPPnfqMBPy7W9hhndvj95AOQt9",
-	"E6Ow3kW9aldATrRWejdcOJVMWmJ6TnpEeoeOvFc3Qm4+L0JgdUtyuXPeLFzs5F/05fnVabUi4qyWr70N",
-	"pFYqn101bxlmF4bWZdWm60HoPy/nFvO1sv9od+Wl6i8r1ZUz5HhowT9n5GLdYm/qj37WNIAIfupNe3av",
-	"ati9xvSzrlYTdHl2IbHgodLinpLd1JstcnK+YAi/H9SZ+C/CuBV4kkXm2lPMYmRnELJ6vOrKcUNxoQWP",
-	"z61HfvvXhJp0v+Dh9NfvEyT+/OeD9cZZQ1S9nSIzZM49l4UcKPt9QibWIvd1FE5MTrEYiBgfvz7+TyZI",
-	"MOifnQY5agxUYKO4RzKxw+hq4OPXx/9U8BGsO1bLxMhKf4R9u6Tg1K7ZegUhjEgbv9rh/sH+gYVI5SQx",
-	"FxDBkRuy+cRDt9teo4+7gRti+88Swg2eJhDBH8T9pp2NlS/M7ps3Bwf2X6wkk+QZBdX7ZHwP8VFvKdJF",
-	"5Gh2oCda1ULchva9MIxBgmaKnAU4xgQNa0yUsbP8cnC4lqcL2dtM7g6P2u9D+HVNlBat3aVnOlyYmAXe",
-	"LpgYTokP0WWb8pdX5VUIpsgy1OMaV1YO2Ta4loSuwLfUoIEr2zSU6eDRmTJPifS5IMPHKhlvDJ0Z/TLT",
-	"XFgXVD5h8OGWVq8VTEd4+o0cr4mKnqeb48pcdhxjElTwv+bGc3LjXRWzoMhaBXt+YpQh9FJ7BLCbmJ8j",
-	"7pSwpeRoHotXyozNRaZ9+OmIyQd7OgkSCrBg39M8nq8ZseOMqCnfnwQmKEzx+K8WTbIbMk56eJ4XhvRC",
-	"SXHhDF5CSzgVvLqIUKbe3auC2JyCUCZoItsgjqfKYt0wZctWBIOnyMsqhfYlaRcBKqwaJHythT+gOgik",
-	"Gqmuijkhfl0vew/X4xN76C2dQkCOhx3pMLnwMMfe2J3oNGbEruRePoBVGO6UN7mrj+C6tm0zPGwgt+lr",
-	"KIvINhJ29srnhYXM0sR172zZG+G92Jmi/zHzps8FpuIeAxX4ax8rCItsYfqU5bcAAAD//zBtLPNqGwAA",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

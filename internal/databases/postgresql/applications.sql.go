@@ -66,6 +66,25 @@ func (q *Queries) InsertApplication(ctx context.Context, arg InsertApplicationPa
 	return id, err
 }
 
+const insertKey = `-- name: InsertKey :exec
+UPDATE applications
+    SET keys = (
+        SELECT array_agg(DISTINCT unnested_keys)
+        FROM unnest(array_cat(keys, $1)) AS unnested_keys
+    )
+    WHERE id = $2
+`
+
+type InsertKeyParams struct {
+	ArrayCat interface{}
+	ID       uuid.UUID
+}
+
+func (q *Queries) InsertKey(ctx context.Context, arg InsertKeyParams) error {
+	_, err := q.db.Exec(ctx, insertKey, arg.ArrayCat, arg.ID)
+	return err
+}
+
 const listApplicaions = `-- name: ListApplicaions :many
 SELECT id, name, keys FROM applications
 ORDER BY name ASC
