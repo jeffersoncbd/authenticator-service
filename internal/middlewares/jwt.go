@@ -30,12 +30,20 @@ type middleware func(http.Handler) http.Handler
 func (m *JwtMiddleware) Middleware() middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/login" || strings.HasPrefix(r.URL.Path, "/docs") {
+			if r.URL.Path == "/login" || strings.HasPrefix(r.URL.Path, "/docs") || strings.HasPrefix(r.URL.Path, "/app") {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			bearerToken := strings.Split(r.Header.Get("Authorization"), " ")[1]
+			auth := r.Header.Get("Authorization")
+			parts := strings.Split(auth, " ")
+
+			if auth == "" || len(parts) < 1 {
+				http.Error(w, "{ \"feedback\": \"Não foi fornecido token de autenticação\" }", http.StatusUnauthorized)
+				return
+			}
+
+			bearerToken := parts[1]
 
 			token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

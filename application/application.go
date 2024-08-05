@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/phenpessoa/gutils/netutils/httputils"
 	"go.uber.org/zap"
@@ -68,6 +69,14 @@ func run(ctx context.Context) error {
 	jwtMiddleware := middlewares.NewJwtMiddleware(logger, pool)
 
 	r := chi.NewMux()
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 	r.Use(middleware.Recoverer, httputils.ChiLogger(logger))
 	r.Use(jwtMiddleware.Middleware())
 
@@ -76,8 +85,10 @@ func run(ctx context.Context) error {
 		logger,
 	)
 
+	r.Handle("/docs*", http.StripPrefix("/docs", http.FileServer(http.Dir("swagger"))))
+	r.Handle("/app*", http.StripPrefix("/app", http.FileServer(http.Dir("webapp/out"))))
+
 	r.Mount("/", spec.Handler(&si))
-	r.Handle("/docs/*", http.StripPrefix("/docs/", http.FileServer(http.Dir("swagger"))))
 
 	srv := &http.Server{
 		Addr:         ":8080",

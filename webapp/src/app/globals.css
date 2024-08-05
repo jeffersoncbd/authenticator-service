@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0px;
+  padding: 0px;
+  box-sizing: border-box;
+  outline-color: #000000;
+  user-select: none;
+}
+
+html {
+  background-color: #212121;
+  color: #fff;
+}
+
+html,
+body,
+#root {
+  height: 100vh;
+}
