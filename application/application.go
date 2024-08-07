@@ -86,7 +86,6 @@ func run(ctx context.Context) error {
 	)
 
 	r.Handle("/docs*", http.StripPrefix("/docs", http.FileServer(http.Dir("swagger"))))
-	r.Handle("/app*", http.StripPrefix("/app", http.FileServer(http.Dir("webapp/out"))))
 
 	r.Mount("/", spec.Handler(&si))
 
