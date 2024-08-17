@@ -6,14 +6,12 @@ package postgresql
 
 import (
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Application struct {
 	ID     uuid.UUID
 	Name   string
 	Secret uuid.UUID
-	Keys   []string
 }
 
 type Group struct {
@@ -27,6 +25,6 @@ type User struct {
 	Email    string
 	Name     string
 	Password string
-	Status   pgtype.Text
+	Status   string
 	Groups   []byte
 }
