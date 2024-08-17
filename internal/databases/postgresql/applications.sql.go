@@ -12,7 +12,7 @@ import (
 )
 
 const getApplication = `-- name: GetApplication :one
-SELECT id, name, secret, keys FROM applications
+SELECT id, name, secret FROM applications
 WHERE
     id = $1
 `
@@ -20,17 +20,12 @@ WHERE
 func (q *Queries) GetApplication(ctx context.Context, id uuid.UUID) (Application, error) {
 	row := q.db.QueryRow(ctx, getApplication, id)
 	var i Application
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Secret,
-		&i.Keys,
-	)
+	err := row.Scan(&i.ID, &i.Name, &i.Secret)
 	return i, err
 }
 
 const getApplicationByName = `-- name: GetApplicationByName :one
-SELECT id, name, secret, keys FROM applications
+SELECT id, name, secret FROM applications
 WHERE
     name = $1
 `
@@ -38,62 +33,31 @@ WHERE
 func (q *Queries) GetApplicationByName(ctx context.Context, name string) (Application, error) {
 	row := q.db.QueryRow(ctx, getApplicationByName, name)
 	var i Application
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Secret,
-		&i.Keys,
-	)
+	err := row.Scan(&i.ID, &i.Name, &i.Secret)
 	return i, err
 }
 
 const insertApplication = `-- name: InsertApplication :one
 INSERT INTO applications
-    ( "name", "keys" ) VALUES
-    ( $1, $2 )
+    ( "name" ) VALUES ( $1 )
 RETURNING "id"
 `
 
-type InsertApplicationParams struct {
-	Name string
-	Keys []string
-}
-
-func (q *Queries) InsertApplication(ctx context.Context, arg InsertApplicationParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, insertApplication, arg.Name, arg.Keys)
+func (q *Queries) InsertApplication(ctx context.Context, name string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertApplication, name)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
 }
 
-const insertKey = `-- name: InsertKey :exec
-UPDATE applications
-    SET keys = (
-        SELECT array_agg(DISTINCT unnested_keys)
-        FROM unnest(array_cat(keys, $1)) AS unnested_keys
-    )
-    WHERE id = $2
-`
-
-type InsertKeyParams struct {
-	ArrayCat interface{}
-	ID       uuid.UUID
-}
-
-func (q *Queries) InsertKey(ctx context.Context, arg InsertKeyParams) error {
-	_, err := q.db.Exec(ctx, insertKey, arg.ArrayCat, arg.ID)
-	return err
-}
-
 const listApplicaions = `-- name: ListApplicaions :many
-SELECT id, name, keys FROM applications
+SELECT id, name FROM applications
 ORDER BY name ASC
 `
 
 type ListApplicaionsRow struct {
 	ID   uuid.UUID
 	Name string
-	Keys []string
 }
 
 func (q *Queries) ListApplicaions(ctx context.Context) ([]ListApplicaionsRow, error) {
@@ -105,7 +69,7 @@ func (q *Queries) ListApplicaions(ctx context.Context) ([]ListApplicaionsRow, er
 	var items []ListApplicaionsRow
 	for rows.Next() {
 		var i ListApplicaionsRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Keys); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -114,20 +78,4 @@ func (q *Queries) ListApplicaions(ctx context.Context) ([]ListApplicaionsRow, er
 		return nil, err
 	}
 	return items, nil
-}
-
-const removeKey = `-- name: RemoveKey :exec
-UPDATE applications
-    SET keys = array_remove(keys, $1)
-    WHERE id = $2
-`
-
-type RemoveKeyParams struct {
-	ArrayRemove interface{}
-	ID          uuid.UUID
-}
-
-func (q *Queries) RemoveKey(ctx context.Context, arg RemoveKeyParams) error {
-	_, err := q.db.Exec(ctx, removeKey, arg.ArrayRemove, arg.ID)
-	return err
 }

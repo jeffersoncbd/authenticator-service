@@ -7,8 +7,6 @@ package postgresql
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getUser = `-- name: GetUser :one
@@ -61,7 +59,7 @@ ORDER BY name ASC
 type ListUsersRow struct {
 	Name   string
 	Email  string
-	Status pgtype.Text
+	Status string
 }
 
 func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
@@ -92,7 +90,7 @@ WHERE email = $1
 
 type UpdateUserStatusParams struct {
 	Email  string
-	Status pgtype.Text
+	Status string
 }
 
 func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) error {
