@@ -161,14 +161,9 @@ components:
           format: uuid
         name:
           type: string
-        keys:
-          type: array
-          items:
-            type: string
       required:
         - id
         - name
-        - keys
       additionalProperties: false
 
     NewGroup:
