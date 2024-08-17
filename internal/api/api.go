@@ -67,7 +67,7 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 // Autentica usuário
 // (POST /login)
 func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response {
-	var credentials spec.Credentials
+	var credentials spec.LoginCredentials
 
 	// decodifica body armazenando dados nas credenciais
 	err := json.NewDecoder(r.Body).Decode(&credentials)
@@ -91,7 +91,7 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 	}
 
 	// verifica status
-	if user.Status.String == "inactive" {
+	if user.Status == "inactive" {
 		return spec.PostLoginJSON401Response(spec.Unauthorized{Feedback: "Usuário está inativo"})
 	}
 

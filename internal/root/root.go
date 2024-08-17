@@ -20,9 +20,7 @@ func Run(pool *pgxpool.Pool, ctx context.Context) error {
 	application, err := store.GetApplicationByName(ctx, appName)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			id, err := store.InsertApplication(ctx, postgresql.InsertApplicationParams{
-				Name: appName, Keys: []string{"users", "applications"},
-			})
+			id, err := store.InsertApplication(ctx, appName)
 			if err != nil {
 				return err
 			}

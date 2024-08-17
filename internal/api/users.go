@@ -10,7 +10,6 @@ import (
 
 	openapi_types "github.com/discord-gophers/goapi-gen/types"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -32,8 +31,8 @@ func (api API) GetUsers(w http.ResponseWriter, r *http.Request) *spec.Response {
 
 	var users []spec.User
 	for _, row := range rows {
-		status := spec.UserStatus{}
-		status.FromValue(row.Status.String)
+		status := spec.Status{}
+		status.FromValue(row.Status)
 		users = append(users, spec.User{
 			Name:   row.Name,
 			Email:  openapi_types.Email(row.Email),
@@ -96,7 +95,7 @@ func (api API) PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail
 		return spec.PostUsersJSON401Response(spec.Unauthorized{Feedback: err.Error()})
 	}
 
-	var body spec.PatchUserStatus
+	var body spec.NewUserStatus
 
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
@@ -109,7 +108,7 @@ func (api API) PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail
 
 	if err := api.store.UpdateUserStatus(r.Context(), postgresql.UpdateUserStatusParams{
 		Email:  string(byEmail),
-		Status: pgtype.Text{String: body.Status.ToValue(), Valid: true},
+		Status: body.Status.ToValue(),
 	}); err != nil {
 		api.logger.Error("Falha ao atualizar status do usuário", zap.Error(err))
 		return spec.PatchUsersByEmailJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
