@@ -27,13 +27,13 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
-// Defines values for UserStatus.
+// Defines values for Status.
 var (
-	UnknownUserStatus = UserStatus{}
+	UnknownStatus = Status{}
 
-	UserStatusActive = UserStatus{"active"}
+	StatusActive = Status{"active"}
 
-	UserStatusInactive = UserStatus{"inactive"}
+	StatusInactive = Status{"inactive"}
 )
 
 // Application defines model for Application.
@@ -43,16 +43,15 @@ type Application struct {
 	Name string   `json:"name"`
 }
 
+// BasicCreationResponse defines model for BasicCreationResponse.
+type BasicCreationResponse struct {
+	Feedback string `json:"feedback"`
+	ID       string `json:"id"`
+}
+
 // BasicResponse defines model for BasicResponse.
 type BasicResponse struct {
 	Feedback string `json:"feedback"`
-}
-
-// Credentials defines model for Credentials.
-type Credentials struct {
-	Application string              `json:"application" validate:"required"`
-	Email       openapi_types.Email `json:"email" validate:"required"`
-	Password    string              `json:"password" validate:"required,min=8,max=32"`
 }
 
 // Error defines model for Error.
@@ -60,14 +59,16 @@ type Error struct {
 	Feedback string `json:"feedback"`
 }
 
-// InsertKeys defines model for InsertKeys.
-type InsertKeys struct {
-	NewKeys []string `json:"newKeys" validate:"required"`
-}
-
 // InternalServerError defines model for InternalServerError.
 type InternalServerError struct {
 	Feedback string `json:"feedback"`
+}
+
+// LoginCredentials defines model for LoginCredentials.
+type LoginCredentials struct {
+	Application string              `json:"application" validate:"required"`
+	Email       openapi_types.Email `json:"email" validate:"required"`
+	Password    string              `json:"password" validate:"required,min=8,max=32"`
 }
 
 // LoginResponse defines model for LoginResponse.
@@ -81,10 +82,9 @@ type NewApplication struct {
 	Name string `json:"name" validate:"required"`
 }
 
-// NewApplicationResponse defines model for NewApplicationResponse.
-type NewApplicationResponse struct {
-	Feedback string `json:"feedback"`
-	ID       string `json:"id"`
+// NewGroup defines model for NewGroup.
+type NewGroup struct {
+	Name string `json:"name" validate:"required,min=3"`
 }
 
 // NewUser defines model for NewUser.
@@ -94,14 +94,9 @@ type NewUser struct {
 	Password string              `json:"password" validate:"required,min=8,max=32"`
 }
 
-// PatchUserStatus defines model for PatchUserStatus.
-type PatchUserStatus struct {
-	Status UserStatus `json:"status"`
-}
-
-// RemoveKey defines model for RemoveKey.
-type RemoveKey struct {
-	Key string `json:"key" validate:"required"`
+// NewUserStatus defines model for NewUserStatus.
+type NewUserStatus struct {
+	Status Status `json:"status"`
 }
 
 // Unauthorized defines model for Unauthorized.
@@ -113,35 +108,35 @@ type Unauthorized struct {
 type User struct {
 	Email  openapi_types.Email `json:"email"`
 	Name   string              `json:"name"`
-	Status UserStatus          `json:"status"`
+	Status Status              `json:"status"`
 }
 
-// UserStatus defines model for UserStatus.
-type UserStatus struct {
+// Status defines model for Status.
+type Status struct {
 	value string
 }
 
-func (t *UserStatus) ToValue() string {
+func (t *Status) ToValue() string {
 	return t.value
 }
-func (t UserStatus) MarshalJSON() ([]byte, error) {
+func (t Status) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.value)
 }
-func (t *UserStatus) UnmarshalJSON(data []byte) error {
+func (t *Status) UnmarshalJSON(data []byte) error {
 	var value string
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
 	return t.FromValue(value)
 }
-func (t *UserStatus) FromValue(value string) error {
+func (t *Status) FromValue(value string) error {
 	switch value {
 
-	case UserStatusActive.value:
+	case StatusActive.value:
 		t.value = value
 		return nil
 
-	case UserStatusInactive.value:
+	case StatusInactive.value:
 		t.value = value
 		return nil
 
@@ -152,20 +147,17 @@ func (t *UserStatus) FromValue(value string) error {
 // PostApplicationsJSONBody defines parameters for PostApplications.
 type PostApplicationsJSONBody NewApplication
 
-// DeleteApplicationsIDKeysJSONBody defines parameters for DeleteApplicationsIDKeys.
-type DeleteApplicationsIDKeysJSONBody RemoveKey
-
-// PostApplicationsIDKeysJSONBody defines parameters for PostApplicationsIDKeys.
-type PostApplicationsIDKeysJSONBody InsertKeys
+// PostApplicationsIDGroupsJSONBody defines parameters for PostApplicationsIDGroups.
+type PostApplicationsIDGroupsJSONBody NewGroup
 
 // PostLoginJSONBody defines parameters for PostLogin.
-type PostLoginJSONBody Credentials
+type PostLoginJSONBody LoginCredentials
 
 // PostUsersJSONBody defines parameters for PostUsers.
 type PostUsersJSONBody NewUser
 
 // PatchUsersByEmailJSONBody defines parameters for PatchUsersByEmail.
-type PatchUsersByEmailJSONBody PatchUserStatus
+type PatchUsersByEmailJSONBody NewUserStatus
 
 // PostApplicationsJSONRequestBody defines body for PostApplications for application/json ContentType.
 type PostApplicationsJSONRequestBody PostApplicationsJSONBody
@@ -175,19 +167,11 @@ func (PostApplicationsJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
-// DeleteApplicationsIDKeysJSONRequestBody defines body for DeleteApplicationsIDKeys for application/json ContentType.
-type DeleteApplicationsIDKeysJSONRequestBody DeleteApplicationsIDKeysJSONBody
+// PostApplicationsIDGroupsJSONRequestBody defines body for PostApplicationsIDGroups for application/json ContentType.
+type PostApplicationsIDGroupsJSONRequestBody PostApplicationsIDGroupsJSONBody
 
 // Bind implements render.Binder.
-func (DeleteApplicationsIDKeysJSONRequestBody) Bind(*http.Request) error {
-	return nil
-}
-
-// PostApplicationsIDKeysJSONRequestBody defines body for PostApplicationsIDKeys for application/json ContentType.
-type PostApplicationsIDKeysJSONRequestBody PostApplicationsIDKeysJSONBody
-
-// Bind implements render.Binder.
-func (PostApplicationsIDKeysJSONRequestBody) Bind(*http.Request) error {
+func (PostApplicationsIDGroupsJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -288,7 +272,7 @@ func GetApplicationsJSON500Response(body InternalServerError) *Response {
 
 // PostApplicationsJSON201Response is a constructor method for a PostApplications response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsJSON201Response(body NewApplicationResponse) *Response {
+func PostApplicationsJSON201Response(body BasicCreationResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        201,
@@ -326,9 +310,9 @@ func PostApplicationsJSON500Response(body InternalServerError) *Response {
 	}
 }
 
-// DeleteApplicationsIDKeysJSON200Response is a constructor method for a DeleteApplicationsIDKeys response.
+// GetApplicationsIDJSON200Response is a constructor method for a GetApplicationsID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func DeleteApplicationsIDKeysJSON200Response(body BasicResponse) *Response {
+func GetApplicationsIDJSON200Response(body Application) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -336,9 +320,9 @@ func DeleteApplicationsIDKeysJSON200Response(body BasicResponse) *Response {
 	}
 }
 
-// DeleteApplicationsIDKeysJSON400Response is a constructor method for a DeleteApplicationsIDKeys response.
+// GetApplicationsIDJSON400Response is a constructor method for a GetApplicationsID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func DeleteApplicationsIDKeysJSON400Response(body Error) *Response {
+func GetApplicationsIDJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -346,9 +330,9 @@ func DeleteApplicationsIDKeysJSON400Response(body Error) *Response {
 	}
 }
 
-// DeleteApplicationsIDKeysJSON401Response is a constructor method for a DeleteApplicationsIDKeys response.
+// GetApplicationsIDJSON401Response is a constructor method for a GetApplicationsID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func DeleteApplicationsIDKeysJSON401Response(body Unauthorized) *Response {
+func GetApplicationsIDJSON401Response(body Unauthorized) *Response {
 	return &Response{
 		body:        body,
 		Code:        401,
@@ -356,9 +340,9 @@ func DeleteApplicationsIDKeysJSON401Response(body Unauthorized) *Response {
 	}
 }
 
-// DeleteApplicationsIDKeysJSON500Response is a constructor method for a DeleteApplicationsIDKeys response.
+// GetApplicationsIDJSON500Response is a constructor method for a GetApplicationsID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func DeleteApplicationsIDKeysJSON500Response(body InternalServerError) *Response {
+func GetApplicationsIDJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -366,9 +350,9 @@ func DeleteApplicationsIDKeysJSON500Response(body InternalServerError) *Response
 	}
 }
 
-// PostApplicationsIDKeysJSON200Response is a constructor method for a PostApplicationsIDKeys response.
+// GetApplicationsIDGroupsJSON200Response is a constructor method for a GetApplicationsIDGroups response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDKeysJSON200Response(body BasicResponse) *Response {
+func GetApplicationsIDGroupsJSON200Response(body BasicCreationResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -376,19 +360,9 @@ func PostApplicationsIDKeysJSON200Response(body BasicResponse) *Response {
 	}
 }
 
-// PostApplicationsIDKeysJSON400Response is a constructor method for a PostApplicationsIDKeys response.
+// GetApplicationsIDGroupsJSON401Response is a constructor method for a GetApplicationsIDGroups response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDKeysJSON400Response(body Error) *Response {
-	return &Response{
-		body:        body,
-		Code:        400,
-		contentType: "application/json",
-	}
-}
-
-// PostApplicationsIDKeysJSON401Response is a constructor method for a PostApplicationsIDKeys response.
-// A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDKeysJSON401Response(body Unauthorized) *Response {
+func GetApplicationsIDGroupsJSON401Response(body Unauthorized) *Response {
 	return &Response{
 		body:        body,
 		Code:        401,
@@ -396,9 +370,49 @@ func PostApplicationsIDKeysJSON401Response(body Unauthorized) *Response {
 	}
 }
 
-// PostApplicationsIDKeysJSON500Response is a constructor method for a PostApplicationsIDKeys response.
+// GetApplicationsIDGroupsJSON500Response is a constructor method for a GetApplicationsIDGroups response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDKeysJSON500Response(body InternalServerError) *Response {
+func GetApplicationsIDGroupsJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDGroupsJSON201Response is a constructor method for a PostApplicationsIDGroups response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDGroupsJSON201Response(body BasicCreationResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        201,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDGroupsJSON400Response is a constructor method for a PostApplicationsIDGroups response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDGroupsJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDGroupsJSON401Response is a constructor method for a PostApplicationsIDGroups response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDGroupsJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// PostApplicationsIDGroupsJSON500Response is a constructor method for a PostApplicationsIDGroups response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostApplicationsIDGroupsJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -554,12 +568,15 @@ type ServerInterface interface {
 	// Cadastra uma aplicação
 	// (POST /applications)
 	PostApplications(w http.ResponseWriter, r *http.Request) *Response
-	// Remove uma chave de permissão do cadastro da aplicação
-	// (DELETE /applications/{id}/keys)
-	DeleteApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id string) *Response
-	// Adiciona chaves de permissão no cadastro de uma aplicação
-	// (POST /applications/{id}/keys)
-	PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request, id string) *Response
+	// Informações de uma aplicação
+	// (GET /applications/{id})
+	GetApplicationsID(w http.ResponseWriter, r *http.Request, id string) *Response
+	// Lista os grupos de permissões de um aplicativo
+	// (GET /applications/{id}/groups)
+	GetApplicationsIDGroups(w http.ResponseWriter, r *http.Request, id string) *Response
+	// Cadastra um novo grupo de permissões para um aplicativo
+	// (POST /applications/{id}/groups)
+	PostApplicationsIDGroups(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Autentica usuário
 	// (POST /login)
 	PostLogin(w http.ResponseWriter, r *http.Request) *Response
@@ -620,8 +637,8 @@ func (siw *ServerInterfaceWrapper) PostApplications(w http.ResponseWriter, r *ht
 	handler(w, r.WithContext(ctx))
 }
 
-// DeleteApplicationsIDKeys operation middleware
-func (siw *ServerInterfaceWrapper) DeleteApplicationsIDKeys(w http.ResponseWriter, r *http.Request) {
+// GetApplicationsID operation middleware
+func (siw *ServerInterfaceWrapper) GetApplicationsID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// ------------- Path parameter "id" -------------
@@ -635,7 +652,7 @@ func (siw *ServerInterfaceWrapper) DeleteApplicationsIDKeys(w http.ResponseWrite
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.DeleteApplicationsIDKeys(w, r, id)
+		resp := siw.Handler.GetApplicationsID(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -648,8 +665,8 @@ func (siw *ServerInterfaceWrapper) DeleteApplicationsIDKeys(w http.ResponseWrite
 	handler(w, r.WithContext(ctx))
 }
 
-// PostApplicationsIDKeys operation middleware
-func (siw *ServerInterfaceWrapper) PostApplicationsIDKeys(w http.ResponseWriter, r *http.Request) {
+// GetApplicationsIDGroups operation middleware
+func (siw *ServerInterfaceWrapper) GetApplicationsIDGroups(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// ------------- Path parameter "id" -------------
@@ -663,7 +680,35 @@ func (siw *ServerInterfaceWrapper) PostApplicationsIDKeys(w http.ResponseWriter,
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.PostApplicationsIDKeys(w, r, id)
+		resp := siw.Handler.GetApplicationsIDGroups(w, r, id)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// PostApplicationsIDGroups operation middleware
+func (siw *ServerInterfaceWrapper) PostApplicationsIDGroups(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.PostApplicationsIDGroups(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -879,8 +924,9 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	r.Route(options.BaseURL, func(r chi.Router) {
 		r.Get("/applications", wrapper.GetApplications)
 		r.Post("/applications", wrapper.PostApplications)
-		r.Delete("/applications/{id}/keys", wrapper.DeleteApplicationsIDKeys)
-		r.Post("/applications/{id}/keys", wrapper.PostApplicationsIDKeys)
+		r.Get("/applications/{id}", wrapper.GetApplicationsID)
+		r.Get("/applications/{id}/groups", wrapper.GetApplicationsIDGroups)
+		r.Post("/applications/{id}/groups", wrapper.PostApplicationsIDGroups)
 		r.Post("/login", wrapper.PostLogin)
 		r.Get("/users", wrapper.GetUsers)
 		r.Post("/users", wrapper.PostUsers)
@@ -910,28 +956,27 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xZ307juBd+lci/32WgMOxKq0pzURh2xTJaoWHQXjBcHOLT1kNiZ+yTQkF5mNVezBPs",
-	"E/BiK9tpmpT0H7R00PYGUufYPj7n+44/Ow8sUkmqJEoyrP3ATNTHBNxjJ01jEQEJJe1P4FzYZ4jPtEpR",
-	"k0DD2l2IDYYsrTQ9MMHt367SCRBrsywTnIWMhimyNjOkheyxPGQ3OPTmhIl7eGJRNIDWMLS/JSTYYJiH",
-	"TOO3TGjkrH3J3GzOtJjjqhxJXX/FiOxQh2BE9AlNqqTBJdfXReTXEN3Md6W0bHLhSCNHSQJis6QDUE/N",
-	"7EiH7G6np3bwjjTsEPTcCAOIBQeyZqW/1nlMQMS1MX3LiwZNwZhbpeuoKBufO3SYCPn+lzCBu/cH71g+",
-	"GfpqjMJyFeWsTQk51lrpzWDhRBrUdFowYon5Jd6eLsejJVI3sYLRXM0LINQS4nPUA9QbjORH1RNy9cQO",
-	"GakblPOd82bhbCf/wNvnl9fmKviCtNrx5nu5jpgutFM0lfd50b0wuCz+Vl36Qt89n7pvLVXoDjZXSYut",
-	"dKESegYU9W3wzwkoW7aYmbLT/zV2WZv9rzWWJ61Cm7Qqw0+6WgzQ5NknTNQAT3G4pE83vseqyGaHa3Lv",
-	"QkJGfaXFPfLNFM41Uma6dAtfnvMJeM6AQB2XKLPECYWIxMCOIGTxeNVUggxGmRY0PLce+eVfI2jUnYz6",
-	"41+/jiLx+5+frTfOmrWLt+PI9IlSjw4hu8r252giLVK/IbBjk2IkuiKCx++P/6AJOASds5MgBQ2BCmwW",
-	"d1By2wyuRD9+f/xbBV+YdceqyghI6S9s104pKLZz1l6xkA1QGz/b/u7e7p4NkUpRQipYmx24Jkt36rvV",
-	"tiqKyjX0kOw/CwjXeMJZm/2G1Kna2Vz5fcP1ebe3Z/9FShJKmtCyra/Gb4Y+6zVNMwsc1a30yanBhrge",
-	"2o/CEAQczDhyNsARcDCkgStjR/lpb38pT2eit0ruBo/q70P285JRmjV3kzBrcGFkFni7YGQ4Bj5rX9Yh",
-	"f3mVX4XMZEkCeljGlZSLbD24FoSuStZ0uWFXdk9TpgFHZ8o8BdK3DA0dKj5cWXQmhNhEuSadYf4Ewftr",
-	"mr0UWA3p6VQ4XgIVPE5Xh5Wp6DgEHhTh33LjOdw4KnIWZEmtYE8nRh7WK27rQfC8Nboz4Rgj4VPafHDt",
-	"VeKcfHBnNlvINSRIqI3zVkgnHak/uixpe2VdR39YieTcC50F1abrntv4rIPRY523EJlXB6b6jVIDjI76",
-	"MMBAW//Elrtvh7seUY65kUshxyBFnQhjbDnmZUVWE2psGrlH15ILb37/NQ5XbsN+TBIDF5E9Im1p/HZo",
-	"3Cly5klsJlgsqyzGRbfpksl2t45VT7iVTye1u5xck5Stfk54ZdbU71wb0vdZ3aC0cYWM/AnUh3VLng2T",
-	"Z8yOUWKCzGSPf2lRxbxB4y4KPM4z4/af6RcAF87gNU7+7s5q8SO/MuXqtuf91Z33lQmqka0Ax0NlttAZ",
-	"o2Utx3sPkdc9189VERdFrCog3NbCN3iWD6QaqKaKOQJ+WS9bD9fD4wREnDuFABT1G+gw+npiDr3xQpL/",
-	"urRdQPev6JvWupT/5PejH03+u3e27A3gXmxM/L9RAU4ZxOIeAhX4jzReaM+kT57/GwAA//+5nQIZoiQA",
-	"AA==",
+	"H4sIAAAAAAAC/+xZwW7jNhN+FYH/f1Ri76YFCgF7cNI0SLEogmaDHrI5TKSxzY1EaknKG8fQwxQ97BP0",
+	"CfxiBUlZlmTJlmM7TlpfEpkakcOZ75v5RE2Iz6OYM2RKEm9CpD/ECMxlL45D6oOinOmfEARUX0N4JXiM",
+	"QlGUxOtDKNElcWFoQmig//a5iEARjyQJDYhL1DhG4hGpBGUDkrrkAcfWXGFkLhYssgEQAsb6N4MIawxT",
+	"lwj8mlCBAfFuiVnNmGZr3OUz8fsv6Cs91SlI6p8JNPv7HWXMmcQ199lHDO7Bf6j1vVUQ6jzPZ210e/vu",
+	"VvxY6sK5EFzsZ+lLplAwCK9RjFDs0ZGPfEDZmcAAmaIQyjW9gDK1loPEJY9HA36Ej0rAkYKBmWEEIQ1A",
+	"abPcab0DjICGpTntyEaTxiDlNy7KgM4Hnzu1G1H24Sc3gscPJ+9JWo1/MUZuvot81cas7ILLij8gWw0Z",
+	"a7aCwb/ht+dX1voCuEYyKx6b+Rq8vBA8iV/UP4OIkwYv3SIiLoMmr28krlsTts0Z1z6eNjasteOxJwpm",
+	"cW/FvSz01wpUsm45lPlD/xfYJx75X2euSjqZJOlkU1edzB6u82nuDLIkMkXFV3Sk90RZdnlXI0xuGCRq",
+	"yAV9wmA//WWHKG6WUe5miaigpTEveh30E0HV+FrPaN2/RxAoeokazn/9MtvJr3980jMaa+Jld+c7GyoV",
+	"W/RS1uf6+QClL2hsKyw5lzH6tE99mH6f/o3SCcDpXV06MQhwuKOzcIQs0MNgSsz0+/Qv7nwm2h3d4X1Q",
+	"XHwmx3pJqkK9ZukWcckIhbSrvTvuHnd1NHmMDGJKPHJihjSD1NDstlOoZWZggEr/0wmdFTiPXKDqFe10",
+	"vG1zM8+873b1P58zhUxVdEXni7TdxWatpLOXJbfYmxYUuA5xObQfqVTgBCDnkdMB9iEAqQQEXOpZfui+",
+	"W8vTZQ6WyFnjUfm+S35cM0rL1q7TnzUuzMwca+fMDOfAJ95tGfK3d+mdS2QSRSDGeVwVN5EtB1eD0JT0",
+	"kkaS5E63CS5rcHTF5SKQviYo1SkPxluLTkXZVNqJEgmmCwjeHi7qX+hqstMrUDzHKViYbg8qjeA4hcDJ",
+	"on+gxnOocZblzEmiUr1u5kXqlgtuZ0KDtG3VvfzZFG4BESoU0rhHmVFfajg7aPDsq3sZ7W4hdCsPQ1oK",
+	"NvN4qgOyUSto3QHqMmj2Mu+kxRQcSPRGSFTJIm5Ips5AvyzK9py6sPb/LWa1blG2+w9EEh/00yb6icss",
+	"iBrhMYqISjkHfIZ3RUdFuGdIbq+mXjuYdyL07OHQa5V4FzrphZeQQ196g+LOYXzELX+r9DUv7isJrDtV",
+	"yAfUbLSZy+bUeEevRAvfCVoxprvd9Zcx5RN/QKbDC4myxxkHIfcqCJMzojdLjJPIZPqnoEWsS5Tm1MmC",
+	"PZGm8zRrsBtj8BLHSOYAs/35EZf57g6HR9s7POLSKUa2ABwLleUiZ46WnUgIC5E9KIhl9fAmi9VBPPwb",
+	"xENNxZwBP6+Xncn9+DwCGpoToRiUP6yhgx42fDi1xq3E/n1u20Lxb+mb4w41f+H73gvLmJW0Nfd00RvB",
+	"E93bWe7bZE1PJRDSJ3C4Y7/ZZW/Hy8iTpv8EAAD//7eq6Rc5JgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

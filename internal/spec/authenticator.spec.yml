@@ -11,6 +11,11 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    Status:
+      type: string
+      enum:
+        - active
+        - inactive
     BasicResponse:
       type: object
       properties:
@@ -19,7 +24,45 @@ components:
       required:
         - feedback
       additionalProperties: false
-    Credentials:
+    BasicCreationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        feedback:
+          type: string
+      required:
+        - id
+        - feedback
+      additionalProperties: false
+
+    Error:
+      type: object
+      properties:
+        feedback:
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
+    Unauthorized:
+      type: object
+      properties:
+        feedback:
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
+    InternalServerError:
+      type: object
+      properties:
+        feedback:
+          type: string
+      required:
+        - feedback
+      additionalProperties: false
+
+    LoginCredentials:
       type: object
       properties:
         application:
@@ -53,11 +96,7 @@ components:
         - token
         - feedback
       additionalProperties: false
-    UserStatus:
-      type: string
-      enum:
-        - active
-        - inactive
+
     NewUser:
       type: object
       properties:
@@ -89,43 +128,30 @@ components:
           type: string
           format: email
         status:
-          $ref: "#/components/schemas/UserStatus"
+          $ref: "#/components/schemas/Status"
       required:
         - name
         - email
         - status
       additionalProperties: false
-    PatchUserStatus:
+    NewUserStatus:
       type: object
       properties:
         status:
-          $ref: "#/components/schemas/UserStatus"
+          $ref: "#/components/schemas/Status"
       required:
         - status
       additionalProperties: false
-    Error:
+
+    NewApplication:
       type: object
       properties:
-        feedback:
+        name:
           type: string
+          x-go-extra-tags:
+            validate: required
       required:
-        - feedback
-      additionalProperties: false
-    Unauthorized:
-      type: object
-      properties:
-        feedback:
-          type: string
-      required:
-        - feedback
-      additionalProperties: false
-    InternalServerError:
-      type: object
-      properties:
-        feedback:
-          type: string
-      required:
-        - feedback
+        - name
       additionalProperties: false
     Application:
       type: object
@@ -144,50 +170,32 @@ components:
         - name
         - keys
       additionalProperties: false
-    NewApplication:
+
+    NewGroup:
       type: object
       properties:
         name:
           type: string
           x-go-extra-tags:
-            validate: required
+            validate: required,min=3
       required:
         - name
+        - applicationId
       additionalProperties: false
-    NewApplicationResponse:
+    Group:
       type: object
       properties:
         id:
           type: string
           format: uuid
-        feedback:
+        name:
           type: string
-      required:
-        - id
-        - feedback
-      additionalProperties: false
-    InsertKeys:
-      type: object
-      properties:
-        newKeys:
-          type: array
-          items:
-            type: string
-          x-go-extra-tags:
-            validate: required
-      required:
-        - newKeys
-      additionalProperties: false
-    RemoveKey:
-      type: object
-      properties:
-        key:
-          type: string
-          x-go-extra-tags:
-            validate: required
-      required:
-        - key
-      additionalProperties: false
+        permissions:
+          type: object
+          properties:
+            any:
+              description: As chaves desse objeto serão as keys da aplicação. Utilize GET /applications/{id} para verificar.
+              type: string
 
 paths:
   /login:
@@ -200,7 +208,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Credentials"
+              $ref: "#/components/schemas/LoginCredentials"
       responses:
         "200":
           description: Token de autenticação
@@ -314,7 +322,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PatchUserStatus"
+              $ref: "#/components/schemas/NewUserStatus"
       responses:
         "200":
           description: Resposta vazia
@@ -381,7 +389,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NewApplicationResponse"
+                $ref: "#/components/schemas/BasicCreationResponse"
         "400":
           description: Bad request
           content:
@@ -401,14 +409,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
 
-  /applications/{id}/keys:
-    post:
+  /applications/{id}:
+    get:
       security:
         - bearerAuth: []
-      summary: Adiciona chaves de permissão no cadastro de uma aplicação
+      summary: Informações de uma aplicação
       tags:
         - applications
-        - keys
       parameters:
         - in: path
           name: id
@@ -418,19 +425,13 @@ paths:
           x-go-extra-tags:
             validate: required,uuid
           required: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/InsertKeys"
       responses:
         "200":
-          description: Chave adicionada
+          description: Informações da aplicação
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BasicResponse"
+                $ref: "#/components/schemas/Application"
         "400":
           description: Bad request
           content:
@@ -449,13 +450,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InternalServerError"
-    delete:
+
+  /applications/{id}/groups:
+    get:
       security:
         - bearerAuth: []
-      summary: Remove uma chave de permissão do cadastro da aplicação
+      summary: Lista os grupos de permissões de um aplicativo
       tags:
-        - applications
-        - keys
+        - groups
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      responses:
+        "200":
+          description: Lista grupos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicCreationResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unauthorized"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerError"
+    post:
+      security:
+        - bearerAuth: []
+      summary: Cadastra um novo grupo de permissões para um aplicativo
+      tags:
+        - groups
       parameters:
         - in: path
           name: id
@@ -470,14 +506,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RemoveKey"
+              $ref: "#/components/schemas/NewGroup"
       responses:
-        "200":
-          description: Chave removida
+        "201":
+          description: Grupo cadastrado
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BasicResponse"
+                $ref: "#/components/schemas/BasicCreationResponse"
         "400":
           description: Bad request
           content:
