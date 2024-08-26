@@ -66,7 +66,8 @@ func (api API) GetApplicationsIDGroups(w http.ResponseWriter, r *http.Request, a
 		return spec.GetApplicationsIDGroupsJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
-	var groups []spec.Group
+	groups := []spec.Group{}
+
 	for _, row := range rows {
 		permissions := make(map[string]interface{})
 		if err := json.Unmarshal(row.Permissions, &permissions); err != nil {
@@ -80,5 +81,6 @@ func (api API) GetApplicationsIDGroups(w http.ResponseWriter, r *http.Request, a
 		})
 	}
 
+	println(groups)
 	return spec.GetApplicationsIDGroupsJSON200Response(groups)
 }
