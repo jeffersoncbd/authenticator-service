@@ -187,10 +187,12 @@ components:
           type: string
         permissions:
           type: object
-          properties:
-            any:
-              description: As chaves desse objeto serão as keys da aplicação. Utilize GET /applications/{id} para verificar.
-              type: string
+          description: Este objeto é composto pela definição de permissões onde a chave é o identificador do recurso e o valor é o número da permissão
+      required:
+        - id
+        - name
+        - permissions
+      additionalProperties: false
 
 paths:
   /login:
@@ -468,7 +470,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BasicCreationResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
         "401":
           description: Unauthorized
           content:
