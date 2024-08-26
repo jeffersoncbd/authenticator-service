@@ -40,7 +40,7 @@ func Run(pool *pgxpool.Pool, ctx context.Context) error {
 			id, err := store.InsertGroup(ctx, postgresql.InsertGroupParams{
 				Name:          "root",
 				ApplicationID: application.ID,
-				Permissions:   []byte(`{ "users": 7, "applications": 7 }`),
+				Permissions:   []byte(`{ "users": 7, "applications": 7, "groups": 7 }`),
 			})
 			if err != nil {
 				return err

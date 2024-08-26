@@ -50,6 +50,35 @@ func (api API) PostApplicationsIDGroups(w http.ResponseWriter, r *http.Request, 
 
 // Lista os grupos de permissões de um aplicativo
 // (GET /applications/{id}/groups)
-func (api API) GetApplicationsIDGroups(w http.ResponseWriter, r *http.Request, id string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+func (api API) GetApplicationsIDGroups(w http.ResponseWriter, r *http.Request, applicationId string) *spec.Response {
+	if err := permissions.Check(r.Context(), groupsIdentifier, permissions.ToWrite); err != nil {
+		return spec.GetApplicationsIDGroupsJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+
+	applicationUuidID, err := uuid.Parse(applicationId)
+	if err != nil {
+		return spec.PostApplicationsIDGroupsJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+	}
+
+	rows, err := api.store.ListGrousByApplicationId(r.Context(), applicationUuidID)
+	if err != nil {
+		api.logger.Error("Falha ao tentar listar grupos da aplicação", zap.Error(err))
+		return spec.GetApplicationsIDGroupsJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+	}
+
+	var groups []spec.Group
+	for _, row := range rows {
+		permissions := make(map[string]interface{})
+		if err := json.Unmarshal(row.Permissions, &permissions); err != nil {
+			api.logger.Error("Falha ao tentar converter permissões", zap.Error(err))
+			return spec.GetApplicationsIDGroupsJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		}
+		groups = append(groups, spec.Group{
+			ID:          row.ID.String(),
+			Name:        row.Name,
+			Permissions: permissions,
+		})
+	}
+
+	return spec.GetApplicationsIDGroupsJSON200Response(groups)
 }

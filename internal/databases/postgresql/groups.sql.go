@@ -66,3 +66,34 @@ func (q *Queries) InsertGroup(ctx context.Context, arg InsertGroupParams) (uuid.
 	err := row.Scan(&id)
 	return id, err
 }
+
+const listGrousByApplicationId = `-- name: ListGrousByApplicationId :many
+SELECT id, name, application_id, permissions FROM groups
+WHERE
+    application_id = $1
+`
+
+func (q *Queries) ListGrousByApplicationId(ctx context.Context, applicationID uuid.UUID) ([]Group, error) {
+	rows, err := q.db.Query(ctx, listGrousByApplicationId, applicationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Group
+	for rows.Next() {
+		var i Group
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ApplicationID,
+			&i.Permissions,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

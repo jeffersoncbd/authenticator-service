@@ -8,6 +8,11 @@ SELECT permissions FROM groups
 WHERE
     id = $1;
 
+-- name: ListGrousByApplicationId :many
+SELECT * FROM groups
+WHERE
+    application_id = $1;
+
 -- name: InsertGroup :one
 INSERT INTO groups
     ( "name", "application_id", "permissions" ) VALUES
