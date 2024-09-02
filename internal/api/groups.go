@@ -38,7 +38,7 @@ func (api API) PostApplicationsIDGroups(w http.ResponseWriter, r *http.Request, 
 	groupID, err := api.store.InsertGroup(r.Context(), postgresql.InsertGroupParams{
 		Name:          group.Name,
 		ApplicationID: applicationUuidID,
-		Permissions:   []byte{},
+		Permissions:   []byte("{}"),
 	})
 	if err != nil {
 		api.logger.Error("Falha ao tentar inserir grupo", zap.Error(err))

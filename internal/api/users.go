@@ -79,6 +79,7 @@ func (api API) PostUsers(w http.ResponseWriter, r *http.Request) *spec.Response 
 		Email:    string(user.Email),
 		Name:     user.Name,
 		Password: string(hash),
+		Groups:   []byte("{}"),
 	})
 	if err != nil {
 		api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
