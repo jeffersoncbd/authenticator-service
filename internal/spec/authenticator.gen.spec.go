@@ -167,14 +167,14 @@ type PostApplicationsJSONBody NewApplication
 // PostApplicationsIDGroupsJSONBody defines parameters for PostApplicationsIDGroups.
 type PostApplicationsIDGroupsJSONBody NewGroup
 
-// PostApplicationsIDLoginJSONBody defines parameters for PostApplicationsIDLogin.
-type PostApplicationsIDLoginJSONBody LoginCredentials
-
 // PostApplicationsIDUsersJSONBody defines parameters for PostApplicationsIDUsers.
 type PostApplicationsIDUsersJSONBody NewUser
 
 // PatchApplicationsIDUsersByEmailJSONBody defines parameters for PatchApplicationsIDUsersByEmail.
 type PatchApplicationsIDUsersByEmailJSONBody NewUserStatus
+
+// PostLoginJSONBody defines parameters for PostLogin.
+type PostLoginJSONBody LoginCredentials
 
 // PostApplicationsJSONRequestBody defines body for PostApplications for application/json ContentType.
 type PostApplicationsJSONRequestBody PostApplicationsJSONBody
@@ -192,14 +192,6 @@ func (PostApplicationsIDGroupsJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
-// PostApplicationsIDLoginJSONRequestBody defines body for PostApplicationsIDLogin for application/json ContentType.
-type PostApplicationsIDLoginJSONRequestBody PostApplicationsIDLoginJSONBody
-
-// Bind implements render.Binder.
-func (PostApplicationsIDLoginJSONRequestBody) Bind(*http.Request) error {
-	return nil
-}
-
 // PostApplicationsIDUsersJSONRequestBody defines body for PostApplicationsIDUsers for application/json ContentType.
 type PostApplicationsIDUsersJSONRequestBody PostApplicationsIDUsersJSONBody
 
@@ -213,6 +205,14 @@ type PatchApplicationsIDUsersByEmailJSONRequestBody PatchApplicationsIDUsersByEm
 
 // Bind implements render.Binder.
 func (PatchApplicationsIDUsersByEmailJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
+
+// PostLoginJSONRequestBody defines body for PostLogin for application/json ContentType.
+type PostLoginJSONRequestBody PostLoginJSONBody
+
+// Bind implements render.Binder.
+func (PostLoginJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -447,46 +447,6 @@ func PostApplicationsIDGroupsJSON500Response(body InternalServerError) *Response
 	}
 }
 
-// PostApplicationsIDLoginJSON200Response is a constructor method for a PostApplicationsIDLogin response.
-// A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDLoginJSON200Response(body LoginResponse) *Response {
-	return &Response{
-		body:        body,
-		Code:        200,
-		contentType: "application/json",
-	}
-}
-
-// PostApplicationsIDLoginJSON400Response is a constructor method for a PostApplicationsIDLogin response.
-// A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDLoginJSON400Response(body Error) *Response {
-	return &Response{
-		body:        body,
-		Code:        400,
-		contentType: "application/json",
-	}
-}
-
-// PostApplicationsIDLoginJSON401Response is a constructor method for a PostApplicationsIDLogin response.
-// A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDLoginJSON401Response(body Unauthorized) *Response {
-	return &Response{
-		body:        body,
-		Code:        401,
-		contentType: "application/json",
-	}
-}
-
-// PostApplicationsIDLoginJSON500Response is a constructor method for a PostApplicationsIDLogin response.
-// A *Response is returned with the configured status code and content type from the spec.
-func PostApplicationsIDLoginJSON500Response(body InternalServerError) *Response {
-	return &Response{
-		body:        body,
-		Code:        500,
-		contentType: "application/json",
-	}
-}
-
 // GetApplicationsIDUsersJSON200Response is a constructor method for a GetApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
 func GetApplicationsIDUsersJSON200Response(body []User) *Response {
@@ -607,6 +567,46 @@ func PatchApplicationsIDUsersByEmailJSON500Response(body InternalServerError) *R
 	}
 }
 
+// PostLoginJSON200Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON200Response(body LoginResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// PostLoginJSON400Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// PostLoginJSON401Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// PostLoginJSON500Response is a constructor method for a PostLogin response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PostLoginJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Lista todas as aplicações
@@ -624,9 +624,6 @@ type ServerInterface interface {
 	// Cadastra um novo grupo de permissões de uma aplicação
 	// (POST /applications/{id}/groups)
 	PostApplicationsIDGroups(w http.ResponseWriter, r *http.Request, id string) *Response
-	// Autentica usuário
-	// (POST /applications/{id}/login)
-	PostApplicationsIDLogin(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Lista os usuários de uma aplicação
 	// (GET /applications/{id}/users)
 	GetApplicationsIDUsers(w http.ResponseWriter, r *http.Request, id string) *Response
@@ -636,6 +633,9 @@ type ServerInterface interface {
 	// Atualiza o status de um usuário
 	// (PATCH /applications/{id}/users/{byEmail})
 	PatchApplicationsIDUsersByEmail(w http.ResponseWriter, r *http.Request, id string, byEmail openapi_types.Email) *Response
+	// Autentica usuário
+	// (POST /login)
+	PostLogin(w http.ResponseWriter, r *http.Request) *Response
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -768,32 +768,6 @@ func (siw *ServerInterfaceWrapper) PostApplicationsIDGroups(w http.ResponseWrite
 	handler(w, r.WithContext(ctx))
 }
 
-// PostApplicationsIDLogin operation middleware
-func (siw *ServerInterfaceWrapper) PostApplicationsIDLogin(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
-		return
-	}
-
-	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.PostApplicationsIDLogin(w, r, id)
-		if resp != nil {
-			if resp.body != nil {
-				render.Render(w, r, resp)
-			} else {
-				w.WriteHeader(resp.Code)
-			}
-		}
-	})
-
-	handler(w, r.WithContext(ctx))
-}
-
 // GetApplicationsIDUsers operation middleware
 func (siw *ServerInterfaceWrapper) GetApplicationsIDUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -874,6 +848,24 @@ func (siw *ServerInterfaceWrapper) PatchApplicationsIDUsersByEmail(w http.Respon
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.PatchApplicationsIDUsersByEmail(w, r, id, byEmail)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// PostLogin operation middleware
+func (siw *ServerInterfaceWrapper) PostLogin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.PostLogin(w, r)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -1006,10 +998,10 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 		r.Get("/applications/{id}", wrapper.GetApplicationsID)
 		r.Get("/applications/{id}/groups", wrapper.GetApplicationsIDGroups)
 		r.Post("/applications/{id}/groups", wrapper.PostApplicationsIDGroups)
-		r.Post("/applications/{id}/login", wrapper.PostApplicationsIDLogin)
 		r.Get("/applications/{id}/users", wrapper.GetApplicationsIDUsers)
 		r.Post("/applications/{id}/users", wrapper.PostApplicationsIDUsers)
 		r.Patch("/applications/{id}/users/{byEmail}", wrapper.PatchApplicationsIDUsersByEmail)
+		r.Post("/login", wrapper.PostLogin)
 	})
 	return r
 }
@@ -1035,29 +1027,29 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+RZwW7bOBN+FYL/f1Rqt+kCCwM9OGk2yKIogk2CPaQ5TMSxzUYitSTlxAn0MIsein2A",
-	"XvbqF1uQlGXJkWw5cRqnBYpWpqjhN5yP38ywdzSUcSIFCqNp744q1IkUGt2Pt92u/SeUwqAw9hGSJOIh",
-	"GC5F57OWwo7pcIQx2Kf/KxzQHv1fZ26z49/qzoFSUtEsywLKUIeKJ9YI7dE9YEThXylqQ7OAvu2+3tia",
-	"ZwJSM5KK3yKrW7r6PqC/bNDfI2FQCYhOUI1RNXo/m0b8PDKbGOTLuDj05ygcKMa4fYboWMkEleE2XAOI",
-	"NAY0KQ3dUc7s3wOpYjC0R9OUMxpQM0mQ9qg2iouhdVxAjHbiwossoDYyXCGjvXPqvnVTLwob8vIzhi5w",
-	"e6B5uK/Qwfwjp9GacAeI7BLCqxosQTtf6iAXVhthbx7uAo6lEHzMn2XpQyXT5LtyKqAJqphrzaVw5qrn",
-	"4UAbJBafkWT6D3EHSxtJEoyAMBxwwadfp18kYUhyQ9NvqIkUDAmQcARjtB9KwhkKwwc8BCYVYZIoDFOl",
-	"JUEiyRgiqfw8Mf03RiUJg8LgF0nv7VXjWag6VLfJdVLwLNH+IIdc7Ct0OwORXhMFVGVoOQMCerMzlDt4",
-	"YxTsGBg6C2OIOANjpxWgrQcYA48qNv3Io4wmoPW1VFW2FoMPNR3EXLz7NYjh5t3uG6/o5f0v71FQeFGs",
-	"2hiVpxBMI69QrKaMn7ZCJj/i9cOzUL0UrBHMBcSNOegjXj9E0R6HzzFitwFlUGbEEWtCfaZxXU3Y9JkJ",
-	"/OdZo3SvvR/PdATzfW919vKtPzFg0nXlUBcfLasDc9OLIPOP6zDNwaBIYycqoeFj6xMX+eNFTcKtVLPP",
-	"kl+ekMXLCopHBWKBLY1xsevYAoKbyYm16OFfIihU/dSM5r9+m3ny+5+nNK/jrSX/du7ZyJjEs5eLgawr",
-	"hRIMXQEz/epqHAakf3xEElBAJLFR2EHB7DA4ifGF0Sdq4dgMH4KR6hN9ZZfkJrJrVl7RgI5Rab/a61fd",
-	"V127mzJBAQmnPbrrhuwJMiPnbaekZW5giK5LsgGdCVyPHqLpl+cF1abyzZpNFjcYrwxuOTdlxQ6DUjCp",
-	"67o+cG1sOTnfuG+oS91n3VKFEx07ad4tLp9rJ5W5Q3vnVdacX2QXAdVpHIOaFNCMZKCJ/VMGGFCvipUy",
-	"Q9MLq7RS14TiWOr7sXCt9p5kk431ugvFwYIiG5Vido8Em+vy6xvPul77/eJZCYGBNgoY+OB32wS/ux1E",
-	"2c+xkzSuONXMkiyonuDOHWdZ22N89N4pgYIYDSrt4HHh0rkZzXqhnu+LqrEPSnFc2TW2rADc55ndkEdp",
-	"S2tJqbu4cb7MpbkcghdHptOZ3vCqW/hIdnWGthzX7Ul26Of/eFRrlcZ889I6gQ1Vmki9cBXy8sjnnZG6",
-	"3p/lJMz51T4FbjvFniQ757za4rwsffDnGVm+6IxMhBzPXHoQnevVNJJD7iLQluvubunnofq9C85WlO9u",
-	"dv1lVD+VVyhc45Ea34dtWcFQkLk/A0hSnU7/VrxMU43uuruRp6l2TGub9M/c9J8057tLk3V61lk8XnKm",
-	"L3xYLoeeR+sk962m0pPkds+fZ0jtq1P6LMo/Vlav0cMZT5eoYefucnIQA49cx52ACUc1fLbDNYTe859u",
-	"Ia+DWgyXBd4WQDb03xZPfMSK6+PvWlCsPGjunRXVMdzyF3iL1TcpRPwWiCT+6t0nhKWHLMv+CwAA//8m",
-	"71uktiQAAA==",
+	"H4sIAAAAAAAC/+RZ3W7bNhR+FYLbpVK7PwMGA71I2q7IUBTFkmAXaS5OxGObjURqJOXECfQwQy+KPUBv",
+	"dusXG0jKsuTQtpzYidMBRSNT/PkOz8fvnEPd0FimmRQojKa9G6pQZ1JodD9edbv2TyyFQWHsI2RZwmMw",
+	"XIrOFy2FbdPxEFOwTz8r7NMe/akzm7Pj3+rOO6WkokVRRJShjhXP7CS0Rw+AEYV/5agNLSL6qvt8Y2ue",
+	"CMjNUCp+jSy0dPN9RH/ZoL2HwqASkByhGqFaaP20G/H9yLRjVC7j/LA/Q+FAMcbtMySflMxQGW7d1YdE",
+	"Y0SzWtMN5cz+35cqBUN7NM85oxE14wxpj2qjuBhYwwWkaDvOvSgiaj3DFTLaO6VurOt6Vs0hz79g7Bx3",
+	"AJrHbxQ6mH+UNFoTbh+RnUN8EcAStbMlBLmadSHszcOdw7EUgvf5oyz9Xsk8e1BORTRDlXKtuRRuuuZ5",
+	"eKcNEovPSDL5h7iDpY0kGSZAGPa54JNvk6+SMCTlRJPvqIkUDAmQeAgjtAMl4QyF4X0eA5OKMEkUxrnS",
+	"kiCRZASJVL6fmPybopKEQTXhV0lv7dXCs9A0KLTJISl4FG9/kAMu3ih0OwOJXhMFNGVoOQMierU3kHt4",
+	"ZRTsGRi4GUaQcAbGdqtAWwswBZ405vQt95o0A60vpWqytWq869RRysXrX6MUrl6/fOEVvb7/9T2KKiuq",
+	"VRd6ZRuCaeQFitWU8d1WyORHvLx7FApLwRrOnEO8MAZ9xMu7KNr98DlGvFyAMqoz4pAtQn2icV1N2PSZ",
+	"ifzwYqF0r70fj3QEy31vdfbKrT8yYPJ15VBXg5blgeXU8yDLwSFMMzAo8tSJSmz4yNrERfl4Fgi4jWz2",
+	"UeLLFlm8LKG4lyPm2LLQL3Ydm0BwMz6yM3r45wgK1X5uhrNfv00t+f3PY1rm8XYm/3Zm2dCYzLOXi74M",
+	"pUIZxi6BmXxzOQ4Dsv/pkGSggEhivbCHgtlmcBLjE6PP1MKxET4GI9Vn+swuyU1i12y8ohEdodJ+tefP",
+	"us+6djdlhgIyTnv0pWuyJ8gMnbWdmpa5hgG6Ksk6dCpwPfoezX69X9QsKl+sWWRxg+lK59ZjU1HtMCgF",
+	"41DV9YFrY9PJ2cZ9R12rPkNLVUZ0bKdZtbi8r+1U5w7tnTZZc3pWnEVU52kKalxBM5KBJvZfHWBEvSo2",
+	"0gxNz6zSSh1wxSepb/vCldoHko03VuvOJQdzimxUjsUtEmyuyg8XnqFa++38WYmBgTYKGHjnd9s4v7sb",
+	"RHlTYid52jBqMUuKqHmCOzecFW2P8eFbpwQKUjSotIPHhQvnZjithXq+Lmr6Pqr5cWXV2DIDcMMLuyH3",
+	"0pbWkhK6uHG2zKS57oInR6bjqd7wpll4T3Z1BjYd1+1J9t73//Go1iqM+eKldQAbqDyTeu4q5OmRzxsj",
+	"ddie5SQs+dU+BO46xbYSnUte7XBclt75s4gsn3REJkKOpibdic5hNc21I2tbMT1x3f+nWuqK0XVqgVzn",
+	"k78Vl09ZQSsbltPM82gd0dxpKm1FMz1/HkEyV0vl1Ms/llpOrQrwdIkadm7Ox+9S4ImrZDIw8TDAZ9sc",
+	"IPSBH7qDvI6CGM4rvC2AbOg6eMtHrLqWa3HQug930Nw7K6ojuOZP8HZg3+SQ8GsgkvgrTR8QVh2yRA64",
+	"28bFccF9rtrSRdKtD5QPTIvmp7gALY7lBQp3cZgbf4+6YwX/jABTgCGXa3Sfq63Ti+K/AAAA///U+uh3",
+	"AyQAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

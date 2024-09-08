@@ -214,20 +214,11 @@ components:
             $ref: "#/components/schemas/InternalServerError"
 
 paths:
-  /applications/{id}/login:
+  /login:
     post:
       summary: Autentica usuário
       tags:
         - session
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          x-go-extra-tags:
-            validate: required,uuid
-          required: true
       requestBody:
         required: true
         content:
