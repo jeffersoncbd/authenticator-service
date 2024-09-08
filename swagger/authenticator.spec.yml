@@ -193,13 +193,41 @@ components:
         - name
         - permissions
       additionalProperties: false
+  responses:
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Unauthorized"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InternalServerError"
 
 paths:
-  /login:
+  /applications/{id}/login:
     post:
       summary: Autentica usuário
       tags:
         - session
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
       requestBody:
         required: true
         content:
@@ -213,59 +241,201 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LoginResponse"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
         "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
         "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
+          $ref: "#/components/responses/500"
 
-  /users:
+  /applications:
     get:
       security:
         - bearerAuth: []
-      summary: Lista todos os usuários
+      summary: Lista todas as aplicações
       tags:
-        - users
+        - applications
       responses:
         "200":
-          description: Lista dos usuários cadastrados
+          description: Lista de aplicações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+    post:
+      security:
+        - bearerAuth: []
+      summary: Cadastra uma aplicação
+      tags:
+        - applications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewApplication"
+      responses:
+        "201":
+          description: ID da aplicação cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicCreationResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+
+  /applications/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Todas as informações de uma aplicação
+      tags:
+        - applications
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      responses:
+        "200":
+          description: Informações da aplicação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+
+  /applications/{id}/groups:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Lista os grupos de permissões de uma aplicação
+      tags:
+        - groups
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      responses:
+        "200":
+          description: Lista grupos de permissões
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+    post:
+      security:
+        - bearerAuth: []
+      summary: Cadastra um novo grupo de permissões de uma aplicação
+      tags:
+        - groups
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewGroup"
+      responses:
+        "201":
+          description: ID do grupo cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicCreationResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+
+  /applications/{id}/users:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Lista os usuários de uma aplicação
+      tags:
+        - users
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      responses:
+        "200":
+          description: Lista de usuários
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/400"
         "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
+          $ref: "#/components/responses/401"
         "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
+          $ref: "#/components/responses/500"
     post:
       security:
         - bearerAuth: []
       summary: Cadastra um novo usuário
       tags:
         - users
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
       requestBody:
         required: true
         content:
@@ -274,31 +444,19 @@ paths:
               $ref: "#/components/schemas/NewUser"
       responses:
         "201":
-          description: Usuário cadastrado
+          description: ID do usuário cadastrado
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/BasicResponse"
         "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/400"
         "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
+          $ref: "#/components/responses/401"
         "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
+          $ref: "#/components/responses/500"
 
-  /users/{byEmail}:
+  /applications/{id}/users/{byEmail}:
     patch:
       security:
         - bearerAuth: []
@@ -306,6 +464,14 @@ paths:
       tags:
         - users
       parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
         - in: path
           name: byEmail
           schema:
@@ -328,206 +494,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/BasicResponse"
         "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
-
-  /applications:
-    get:
-      security:
-        - bearerAuth: []
-      summary: Lista todas as aplicações
-      tags:
-        - applications
-      responses:
-        "200":
-          description: Lista das aplicações cadastrados
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Application"
+          $ref: "#/components/responses/400"
         "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
+          $ref: "#/components/responses/401"
         "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
-    post:
-      security:
-        - bearerAuth: []
-      summary: Cadastra uma aplicação
-      tags:
-        - applications
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewApplication"
-      responses:
-        "201":
-          description: Aplicação cadastrada
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BasicCreationResponse"
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
-
-  /applications/{id}:
-    get:
-      security:
-        - bearerAuth: []
-      summary: Informações de uma aplicação
-      tags:
-        - applications
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          x-go-extra-tags:
-            validate: required,uuid
-          required: true
-      responses:
-        "200":
-          description: Informações da aplicação
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
-
-  /applications/{id}/groups:
-    get:
-      security:
-        - bearerAuth: []
-      summary: Lista os grupos de permissões de um aplicativo
-      tags:
-        - groups
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          x-go-extra-tags:
-            validate: required,uuid
-          required: true
-      responses:
-        "200":
-          description: Lista grupos
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Group"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
-    post:
-      security:
-        - bearerAuth: []
-      summary: Cadastra um novo grupo de permissões para um aplicativo
-      tags:
-        - groups
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          x-go-extra-tags:
-            validate: required,uuid
-          required: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewGroup"
-      responses:
-        "201":
-          description: Grupo cadastrado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BasicCreationResponse"
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Unauthorized"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InternalServerError"
+          $ref: "#/components/responses/500"

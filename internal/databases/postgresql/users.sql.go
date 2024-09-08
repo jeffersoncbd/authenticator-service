@@ -7,38 +7,48 @@ package postgresql
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const getUser = `-- name: GetUser :one
-SELECT email, name, password, status, groups FROM users
+SELECT id, email, name, password, status, application_id, group_id FROM users
 WHERE
-    email = $1
+    email = $2 AND application_id = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, email)
+type GetUserParams struct {
+	ApplicationID uuid.UUID
+	Email         string
+}
+
+func (q *Queries) GetUser(ctx context.Context, arg GetUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, arg.ApplicationID, arg.Email)
 	var i User
 	err := row.Scan(
+		&i.ID,
 		&i.Email,
 		&i.Name,
 		&i.Password,
 		&i.Status,
-		&i.Groups,
+		&i.ApplicationID,
+		&i.GroupID,
 	)
 	return i, err
 }
 
 const insertUser = `-- name: InsertUser :exec
 INSERT INTO users
-    ( "email", "name", "password", "groups" ) VALUES
-    ( $1, $2, $3, $4 )
+    ( "email", "name", "password", "application_id", "group_id" ) VALUES
+    ( $1, $2, $3, $4, $5 )
 `
 
 type InsertUserParams struct {
-	Email    string
-	Name     string
-	Password string
-	Groups   []byte
+	Email         string
+	Name          string
+	Password      string
+	ApplicationID uuid.UUID
+	GroupID       uuid.UUID
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
@@ -46,13 +56,16 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 		arg.Email,
 		arg.Name,
 		arg.Password,
-		arg.Groups,
+		arg.ApplicationID,
+		arg.GroupID,
 	)
 	return err
 }
 
 const listUsers = `-- name: ListUsers :many
 SELECT name, email, status FROM users
+WHERE
+    application_id = $1
 ORDER BY name ASC
 `
 
@@ -62,8 +75,8 @@ type ListUsersRow struct {
 	Status string
 }
 
-func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
-	rows, err := q.db.Query(ctx, listUsers)
+func (q *Queries) ListUsers(ctx context.Context, applicationID uuid.UUID) ([]ListUsersRow, error) {
+	rows, err := q.db.Query(ctx, listUsers, applicationID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,16 +97,17 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 
 const updateUserStatus = `-- name: UpdateUserStatus :exec
 UPDATE users
-SET status = $2
-WHERE email = $1
+SET status = $3
+WHERE email = $2 AND application_id = $1
 `
 
 type UpdateUserStatusParams struct {
-	Email  string
-	Status string
+	ApplicationID uuid.UUID
+	Email         string
+	Status        string
 }
 
 func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) error {
-	_, err := q.db.Exec(ctx, updateUserStatus, arg.Email, arg.Status)
+	_, err := q.db.Exec(ctx, updateUserStatus, arg.ApplicationID, arg.Email, arg.Status)
 	return err
 }

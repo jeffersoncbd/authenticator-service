@@ -52,7 +52,10 @@ func Run(pool *pgxpool.Pool, ctx context.Context) error {
 	}
 	fmt.Println(" \033[0;32m✔\033[0m authenticator root group inserted")
 
-	_, err = store.GetUser(ctx, os.Getenv("ROOT_MAIL"))
+	_, err = store.GetUser(ctx, postgresql.GetUserParams{
+		ApplicationID: application.ID,
+		Email:         os.Getenv("ROOT_MAIL"),
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			hash, err := bcrypt.GenerateFromPassword([]byte(os.Getenv("ROOT_PASS")), bcrypt.DefaultCost)
@@ -60,10 +63,11 @@ func Run(pool *pgxpool.Pool, ctx context.Context) error {
 				return err
 			}
 			store.InsertUser(ctx, postgresql.InsertUserParams{
-				Email:    os.Getenv("ROOT_MAIL"),
-				Name:     "root",
-				Password: string(hash),
-				Groups:   []byte(fmt.Sprintf("{ \"%v\": \"%v\" }", application.ID, group.ID)),
+				Email:         os.Getenv("ROOT_MAIL"),
+				Name:          "root",
+				Password:      string(hash),
+				ApplicationID: application.ID,
+				GroupID:       group.ID,
 			})
 		} else {
 			return err

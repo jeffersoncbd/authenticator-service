@@ -22,9 +22,11 @@ type Group struct {
 }
 
 type User struct {
-	Email    string
-	Name     string
-	Password string
-	Status   string
-	Groups   []byte
+	ID            uuid.UUID
+	Email         string
+	Name          string
+	Password      string
+	Status        string
+	ApplicationID uuid.UUID
+	GroupID       uuid.UUID
 }

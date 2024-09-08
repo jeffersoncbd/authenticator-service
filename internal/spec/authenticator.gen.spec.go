@@ -119,6 +119,15 @@ type User struct {
 	Status Status              `json:"status"`
 }
 
+// N400 defines model for 400.
+type N400 Error
+
+// N401 defines model for 401.
+type N401 Unauthorized
+
+// N500 defines model for 500.
+type N500 InternalServerError
+
 // Status defines model for Status.
 type Status struct {
 	value string
@@ -158,14 +167,14 @@ type PostApplicationsJSONBody NewApplication
 // PostApplicationsIDGroupsJSONBody defines parameters for PostApplicationsIDGroups.
 type PostApplicationsIDGroupsJSONBody NewGroup
 
-// PostLoginJSONBody defines parameters for PostLogin.
-type PostLoginJSONBody LoginCredentials
+// PostApplicationsIDLoginJSONBody defines parameters for PostApplicationsIDLogin.
+type PostApplicationsIDLoginJSONBody LoginCredentials
 
-// PostUsersJSONBody defines parameters for PostUsers.
-type PostUsersJSONBody NewUser
+// PostApplicationsIDUsersJSONBody defines parameters for PostApplicationsIDUsers.
+type PostApplicationsIDUsersJSONBody NewUser
 
-// PatchUsersByEmailJSONBody defines parameters for PatchUsersByEmail.
-type PatchUsersByEmailJSONBody NewUserStatus
+// PatchApplicationsIDUsersByEmailJSONBody defines parameters for PatchApplicationsIDUsersByEmail.
+type PatchApplicationsIDUsersByEmailJSONBody NewUserStatus
 
 // PostApplicationsJSONRequestBody defines body for PostApplications for application/json ContentType.
 type PostApplicationsJSONRequestBody PostApplicationsJSONBody
@@ -183,27 +192,27 @@ func (PostApplicationsIDGroupsJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
-// PostLoginJSONRequestBody defines body for PostLogin for application/json ContentType.
-type PostLoginJSONRequestBody PostLoginJSONBody
+// PostApplicationsIDLoginJSONRequestBody defines body for PostApplicationsIDLogin for application/json ContentType.
+type PostApplicationsIDLoginJSONRequestBody PostApplicationsIDLoginJSONBody
 
 // Bind implements render.Binder.
-func (PostLoginJSONRequestBody) Bind(*http.Request) error {
+func (PostApplicationsIDLoginJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
-// PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
-type PostUsersJSONRequestBody PostUsersJSONBody
+// PostApplicationsIDUsersJSONRequestBody defines body for PostApplicationsIDUsers for application/json ContentType.
+type PostApplicationsIDUsersJSONRequestBody PostApplicationsIDUsersJSONBody
 
 // Bind implements render.Binder.
-func (PostUsersJSONRequestBody) Bind(*http.Request) error {
+func (PostApplicationsIDUsersJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
-// PatchUsersByEmailJSONRequestBody defines body for PatchUsersByEmail for application/json ContentType.
-type PatchUsersByEmailJSONRequestBody PatchUsersByEmailJSONBody
+// PatchApplicationsIDUsersByEmailJSONRequestBody defines body for PatchApplicationsIDUsersByEmail for application/json ContentType.
+type PatchApplicationsIDUsersByEmailJSONRequestBody PatchApplicationsIDUsersByEmailJSONBody
 
 // Bind implements render.Binder.
-func (PatchUsersByEmailJSONRequestBody) Bind(*http.Request) error {
+func (PatchApplicationsIDUsersByEmailJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -368,6 +377,16 @@ func GetApplicationsIDGroupsJSON200Response(body []Group) *Response {
 	}
 }
 
+// GetApplicationsIDGroupsJSON400Response is a constructor method for a GetApplicationsIDGroups response.
+// A *Response is returned with the configured status code and content type from the spec.
+func GetApplicationsIDGroupsJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
 // GetApplicationsIDGroupsJSON401Response is a constructor method for a GetApplicationsIDGroups response.
 // A *Response is returned with the configured status code and content type from the spec.
 func GetApplicationsIDGroupsJSON401Response(body Unauthorized) *Response {
@@ -428,9 +447,9 @@ func PostApplicationsIDGroupsJSON500Response(body InternalServerError) *Response
 	}
 }
 
-// PostLoginJSON200Response is a constructor method for a PostLogin response.
+// PostApplicationsIDLoginJSON200Response is a constructor method for a PostApplicationsIDLogin response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostLoginJSON200Response(body LoginResponse) *Response {
+func PostApplicationsIDLoginJSON200Response(body LoginResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -438,9 +457,9 @@ func PostLoginJSON200Response(body LoginResponse) *Response {
 	}
 }
 
-// PostLoginJSON400Response is a constructor method for a PostLogin response.
+// PostApplicationsIDLoginJSON400Response is a constructor method for a PostApplicationsIDLogin response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostLoginJSON400Response(body Error) *Response {
+func PostApplicationsIDLoginJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -448,9 +467,9 @@ func PostLoginJSON400Response(body Error) *Response {
 	}
 }
 
-// PostLoginJSON401Response is a constructor method for a PostLogin response.
+// PostApplicationsIDLoginJSON401Response is a constructor method for a PostApplicationsIDLogin response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostLoginJSON401Response(body Unauthorized) *Response {
+func PostApplicationsIDLoginJSON401Response(body Unauthorized) *Response {
 	return &Response{
 		body:        body,
 		Code:        401,
@@ -458,9 +477,9 @@ func PostLoginJSON401Response(body Unauthorized) *Response {
 	}
 }
 
-// PostLoginJSON500Response is a constructor method for a PostLogin response.
+// PostApplicationsIDLoginJSON500Response is a constructor method for a PostApplicationsIDLogin response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostLoginJSON500Response(body InternalServerError) *Response {
+func PostApplicationsIDLoginJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -468,9 +487,9 @@ func PostLoginJSON500Response(body InternalServerError) *Response {
 	}
 }
 
-// GetUsersJSON200Response is a constructor method for a GetUsers response.
+// GetApplicationsIDUsersJSON200Response is a constructor method for a GetApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetUsersJSON200Response(body []User) *Response {
+func GetApplicationsIDUsersJSON200Response(body []User) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -478,9 +497,19 @@ func GetUsersJSON200Response(body []User) *Response {
 	}
 }
 
-// GetUsersJSON401Response is a constructor method for a GetUsers response.
+// GetApplicationsIDUsersJSON400Response is a constructor method for a GetApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetUsersJSON401Response(body Unauthorized) *Response {
+func GetApplicationsIDUsersJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// GetApplicationsIDUsersJSON401Response is a constructor method for a GetApplicationsIDUsers response.
+// A *Response is returned with the configured status code and content type from the spec.
+func GetApplicationsIDUsersJSON401Response(body Unauthorized) *Response {
 	return &Response{
 		body:        body,
 		Code:        401,
@@ -488,9 +517,9 @@ func GetUsersJSON401Response(body Unauthorized) *Response {
 	}
 }
 
-// GetUsersJSON500Response is a constructor method for a GetUsers response.
+// GetApplicationsIDUsersJSON500Response is a constructor method for a GetApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetUsersJSON500Response(body InternalServerError) *Response {
+func GetApplicationsIDUsersJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -498,9 +527,9 @@ func GetUsersJSON500Response(body InternalServerError) *Response {
 	}
 }
 
-// PostUsersJSON201Response is a constructor method for a PostUsers response.
+// PostApplicationsIDUsersJSON201Response is a constructor method for a PostApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostUsersJSON201Response(body BasicResponse) *Response {
+func PostApplicationsIDUsersJSON201Response(body BasicResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        201,
@@ -508,9 +537,9 @@ func PostUsersJSON201Response(body BasicResponse) *Response {
 	}
 }
 
-// PostUsersJSON400Response is a constructor method for a PostUsers response.
+// PostApplicationsIDUsersJSON400Response is a constructor method for a PostApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostUsersJSON400Response(body Error) *Response {
+func PostApplicationsIDUsersJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -518,9 +547,9 @@ func PostUsersJSON400Response(body Error) *Response {
 	}
 }
 
-// PostUsersJSON401Response is a constructor method for a PostUsers response.
+// PostApplicationsIDUsersJSON401Response is a constructor method for a PostApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostUsersJSON401Response(body Unauthorized) *Response {
+func PostApplicationsIDUsersJSON401Response(body Unauthorized) *Response {
 	return &Response{
 		body:        body,
 		Code:        401,
@@ -528,9 +557,9 @@ func PostUsersJSON401Response(body Unauthorized) *Response {
 	}
 }
 
-// PostUsersJSON500Response is a constructor method for a PostUsers response.
+// PostApplicationsIDUsersJSON500Response is a constructor method for a PostApplicationsIDUsers response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostUsersJSON500Response(body InternalServerError) *Response {
+func PostApplicationsIDUsersJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -538,9 +567,9 @@ func PostUsersJSON500Response(body InternalServerError) *Response {
 	}
 }
 
-// PatchUsersByEmailJSON200Response is a constructor method for a PatchUsersByEmail response.
+// PatchApplicationsIDUsersByEmailJSON200Response is a constructor method for a PatchApplicationsIDUsersByEmail response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PatchUsersByEmailJSON200Response(body BasicResponse) *Response {
+func PatchApplicationsIDUsersByEmailJSON200Response(body BasicResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -548,9 +577,9 @@ func PatchUsersByEmailJSON200Response(body BasicResponse) *Response {
 	}
 }
 
-// PatchUsersByEmailJSON400Response is a constructor method for a PatchUsersByEmail response.
+// PatchApplicationsIDUsersByEmailJSON400Response is a constructor method for a PatchApplicationsIDUsersByEmail response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PatchUsersByEmailJSON400Response(body Error) *Response {
+func PatchApplicationsIDUsersByEmailJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -558,9 +587,19 @@ func PatchUsersByEmailJSON400Response(body Error) *Response {
 	}
 }
 
-// PatchUsersByEmailJSON500Response is a constructor method for a PatchUsersByEmail response.
+// PatchApplicationsIDUsersByEmailJSON401Response is a constructor method for a PatchApplicationsIDUsersByEmail response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PatchUsersByEmailJSON500Response(body InternalServerError) *Response {
+func PatchApplicationsIDUsersByEmailJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// PatchApplicationsIDUsersByEmailJSON500Response is a constructor method for a PatchApplicationsIDUsersByEmail response.
+// A *Response is returned with the configured status code and content type from the spec.
+func PatchApplicationsIDUsersByEmailJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -576,27 +615,27 @@ type ServerInterface interface {
 	// Cadastra uma aplicação
 	// (POST /applications)
 	PostApplications(w http.ResponseWriter, r *http.Request) *Response
-	// Informações de uma aplicação
+	// Todas as informações de uma aplicação
 	// (GET /applications/{id})
 	GetApplicationsID(w http.ResponseWriter, r *http.Request, id string) *Response
-	// Lista os grupos de permissões de um aplicativo
+	// Lista os grupos de permissões de uma aplicação
 	// (GET /applications/{id}/groups)
 	GetApplicationsIDGroups(w http.ResponseWriter, r *http.Request, id string) *Response
-	// Cadastra um novo grupo de permissões para um aplicativo
+	// Cadastra um novo grupo de permissões de uma aplicação
 	// (POST /applications/{id}/groups)
 	PostApplicationsIDGroups(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Autentica usuário
-	// (POST /login)
-	PostLogin(w http.ResponseWriter, r *http.Request) *Response
-	// Lista todos os usuários
-	// (GET /users)
-	GetUsers(w http.ResponseWriter, r *http.Request) *Response
+	// (POST /applications/{id}/login)
+	PostApplicationsIDLogin(w http.ResponseWriter, r *http.Request, id string) *Response
+	// Lista os usuários de uma aplicação
+	// (GET /applications/{id}/users)
+	GetApplicationsIDUsers(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Cadastra um novo usuário
-	// (POST /users)
-	PostUsers(w http.ResponseWriter, r *http.Request) *Response
+	// (POST /applications/{id}/users)
+	PostApplicationsIDUsers(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Atualiza o status de um usuário
-	// (PATCH /users/{byEmail})
-	PatchUsersByEmail(w http.ResponseWriter, r *http.Request, byEmail openapi_types.Email) *Response
+	// (PATCH /applications/{id}/users/{byEmail})
+	PatchApplicationsIDUsersByEmail(w http.ResponseWriter, r *http.Request, id string, byEmail openapi_types.Email) *Response
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -729,12 +768,20 @@ func (siw *ServerInterfaceWrapper) PostApplicationsIDGroups(w http.ResponseWrite
 	handler(w, r.WithContext(ctx))
 }
 
-// PostLogin operation middleware
-func (siw *ServerInterfaceWrapper) PostLogin(w http.ResponseWriter, r *http.Request) {
+// PostApplicationsIDLogin operation middleware
+func (siw *ServerInterfaceWrapper) PostApplicationsIDLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
+
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.PostLogin(w, r)
+		resp := siw.Handler.PostApplicationsIDLogin(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -747,14 +794,22 @@ func (siw *ServerInterfaceWrapper) PostLogin(w http.ResponseWriter, r *http.Requ
 	handler(w, r.WithContext(ctx))
 }
 
-// GetUsers operation middleware
-func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
+// GetApplicationsIDUsers operation middleware
+func (siw *ServerInterfaceWrapper) GetApplicationsIDUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
 
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.GetUsers(w, r)
+		resp := siw.Handler.GetApplicationsIDUsers(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -767,14 +822,22 @@ func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Reque
 	handler(w, r.WithContext(ctx))
 }
 
-// PostUsers operation middleware
-func (siw *ServerInterfaceWrapper) PostUsers(w http.ResponseWriter, r *http.Request) {
+// PostApplicationsIDUsers operation middleware
+func (siw *ServerInterfaceWrapper) PostApplicationsIDUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
 
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.PostUsers(w, r)
+		resp := siw.Handler.PostApplicationsIDUsers(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -787,9 +850,17 @@ func (siw *ServerInterfaceWrapper) PostUsers(w http.ResponseWriter, r *http.Requ
 	handler(w, r.WithContext(ctx))
 }
 
-// PatchUsersByEmail operation middleware
-func (siw *ServerInterfaceWrapper) PatchUsersByEmail(w http.ResponseWriter, r *http.Request) {
+// PatchApplicationsIDUsersByEmail operation middleware
+func (siw *ServerInterfaceWrapper) PatchApplicationsIDUsersByEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
 
 	// ------------- Path parameter "byEmail" -------------
 	var byEmail openapi_types.Email
@@ -802,7 +873,7 @@ func (siw *ServerInterfaceWrapper) PatchUsersByEmail(w http.ResponseWriter, r *h
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.PatchUsersByEmail(w, r, byEmail)
+		resp := siw.Handler.PatchApplicationsIDUsersByEmail(w, r, id, byEmail)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -935,10 +1006,10 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 		r.Get("/applications/{id}", wrapper.GetApplicationsID)
 		r.Get("/applications/{id}/groups", wrapper.GetApplicationsIDGroups)
 		r.Post("/applications/{id}/groups", wrapper.PostApplicationsIDGroups)
-		r.Post("/login", wrapper.PostLogin)
-		r.Get("/users", wrapper.GetUsers)
-		r.Post("/users", wrapper.PostUsers)
-		r.Patch("/users/{byEmail}", wrapper.PatchUsersByEmail)
+		r.Post("/applications/{id}/login", wrapper.PostApplicationsIDLogin)
+		r.Get("/applications/{id}/users", wrapper.GetApplicationsIDUsers)
+		r.Post("/applications/{id}/users", wrapper.PostApplicationsIDUsers)
+		r.Patch("/applications/{id}/users/{byEmail}", wrapper.PatchApplicationsIDUsersByEmail)
 	})
 	return r
 }
@@ -964,29 +1035,29 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xZwW7bOBN+FYL/f1Rqt90FFgZ6cLrdIIuiKLYN9tDmMBHHNluJVEnKrRvoYRY9FPsA",
-	"e9mrX2xBUpYlRbLl2I6TwpdElqjhcOb7Zj5S1zSUcSIFCqPp4JrqcIIxuMthkkQ8BMOlsD+BMW6vIXqt",
-	"ZILKcNR0MIJIY0CT0q1rypn9O5IqBkMHNE05owE1swTpgGqjuBjTLKACYrQDaw+ygCr8lHKFjA7eUfeu",
-	"G3pZ2JBXHzA01sYpaB4+V+jc/AN1IoXGDd0dIbIrCD82+BJ0W0uTy4XVVrd3727Nj5UuvFBKqsNMfaZk",
-	"mtwppgKaoIq51lwKZ46hDhVPPLjpC22QWP+MJPO/iaOENpIkGAFhOOKCz7/Pv0nCkOSG5v+gJlIwJEDC",
-	"CUzRvigJZygMH/EQmFSESaIwTJWWBIkkU4ik8uPE/N8YlSQMCoPfJL0Rq1YuVBfUFORzYVAJiN6gmqI6",
-	"YLZfyjEXzxW6yECkN/QCqmVoNQIC+uVkLE/wi1FwYmDsLEwh4gyMHVY4bVeAMfCoYtPf2cpoAlp/lqqK",
-	"1uLmbU0HMRfPfgli+PLs6ROa1eNfjlFQrKKYtTUr+yiYRn5EsR4yftiaMvkKP9++CzWXgg2SWfO4tQe9",
-	"ws+3qWjb+ecQ8bTFy6CMiHPW5vWFxk1rwq45E/jXs9bSvXE8DkTBPO6duJeH/o0Bk25aDnXx0v8VjuiA",
-	"/q+3VHC9XL71ctN1J/OXm3xaOoMijV1RCQ2f2jVxkV9eNjTcCwGpmUjFvyI7TH/ZI4pXCYqtElFDS2te",
-	"7DxWQHAze2MtevevEBSqYWomy1+/LVby+59vrUU3mg7yp8uVTYxJPHq5GMkmKZRg6ATM/LvTOAzI8PU5",
-	"SUABkcRm4QQFs7fBlRgvjN5T647t8CEYqd7TR3ZKbiI7Z+URDegUlfazPX7Uf9S30ZQJCkg4HdCn7pZl",
-	"kJm41fZKtczdGKOx/2xCFwVuQM/QDMvjbLx9c3PvPOn37b9QCoPC1HRF74P23cVnzclNg/Ha5JZ7U1ZE",
-	"GJSCmQ9xNbQvuTZAGOhl5GyAQ2CgjQImtbXyU//xRp6ucrBCzgaPqs8D+vOGUVo1d5P+bHBhMYz4cWQx",
-	"cAl8OnhXhfy7y+wyoDqNY1CzIq5GushWg2tB6Ep6RSNpemnbhNQNOHot9U0gfUpRm1PJZjuLTk3Z1NqJ",
-	"USlmNxC8O1w075obsjMsUbzAKXiY7g4qreA4BUby6B+pcRtqPM9zRtK4Uq/beZEF1YLbu+Ys61p1z391",
-	"hVtBjAaVdu5x4dSXmSy2rgO/ja2iPSiFbu0mv6Ngc69nNiBbtYLOHaApg24ty05aTsGRRA+ERLUs4pZk",
-	"6o3tZlF359SZH//jMauTyPJb687yaqzS5CikthFSUudBrJ92OuTnwDd8WsZ9Dunusuq+o3ovii+H8j3V",
-	"emc26aXdyLFBPUCVR4ScSs/fOn3dDn4tgW3LiuSYu4W2c9kdH+9pb3Tjg0EnxvR3O/8qpryVH1HY8EJq",
-	"/LnGUdHdC8IUjBguEkNSnc7/UryMdY3us1kO9lS7ztMuxi7cgLuQOu4ks/tBktTF6o6nSLs7RZKalCNb",
-	"Ao6HymqRs0TLXiSEh8gBFMSqeniRx+ooHn4E8dBQMRfAL+pl7/pq9iIGHrmjoQRMOGmgg73t+HDqB3cS",
-	"+1fF2A6Kf0cfH/eo+Usf+u5YxqylrXtmi94UvvKDHeo+TNYMTQoR/wpEEv/xLt8dryJPlv0XAAD//3kq",
-	"/sluJwAA",
+	"H4sIAAAAAAAC/+RZwW7bOBN+FYL/f1Rqt+kCCwM9OGk2yKIogk2CPaQ5TMSxzUYitSTlxAn0MIsein2A",
+	"XvbqF1uQlGXJkWw5cRqnBYpWpqjhN5yP38ywdzSUcSIFCqNp744q1IkUGt2Pt92u/SeUwqAw9hGSJOIh",
+	"GC5F57OWwo7pcIQx2Kf/KxzQHv1fZ26z49/qzoFSUtEsywLKUIeKJ9YI7dE9YEThXylqQ7OAvu2+3tia",
+	"ZwJSM5KK3yKrW7r6PqC/bNDfI2FQCYhOUI1RNXo/m0b8PDKbGOTLuDj05ygcKMa4fYboWMkEleE2XAOI",
+	"NAY0KQ3dUc7s3wOpYjC0R9OUMxpQM0mQ9qg2iouhdVxAjHbiwossoDYyXCGjvXPqvnVTLwob8vIzhi5w",
+	"e6B5uK/Qwfwjp9GacAeI7BLCqxosQTtf6iAXVhthbx7uAo6lEHzMn2XpQyXT5LtyKqAJqphrzaVw5qrn",
+	"4UAbJBafkWT6D3EHSxtJEoyAMBxwwadfp18kYUhyQ9NvqIkUDAmQcARjtB9KwhkKwwc8BCYVYZIoDFOl",
+	"JUEiyRgiqfw8Mf03RiUJg8LgF0nv7VXjWag6VLfJdVLwLNH+IIdc7Ct0OwORXhMFVGVoOQMCerMzlDt4",
+	"YxTsGBg6C2OIOANjpxWgrQcYA48qNv3Io4wmoPW1VFW2FoMPNR3EXLz7NYjh5t3uG6/o5f0v71FQeFGs",
+	"2hiVpxBMI69QrKaMn7ZCJj/i9cOzUL0UrBHMBcSNOegjXj9E0R6HzzFitwFlUGbEEWtCfaZxXU3Y9JkJ",
+	"/OdZo3SvvR/PdATzfW919vKtPzFg0nXlUBcfLasDc9OLIPOP6zDNwaBIYycqoeFj6xMX+eNFTcKtVLPP",
+	"kl+ekMXLCopHBWKBLY1xsevYAoKbyYm16OFfIihU/dSM5r9+m3ny+5+nNK/jrSX/du7ZyJjEs5eLgawr",
+	"hRIMXQEz/epqHAakf3xEElBAJLFR2EHB7DA4ifGF0Sdq4dgMH4KR6hN9ZZfkJrJrVl7RgI5Rab/a61fd",
+	"V127mzJBAQmnPbrrhuwJMiPnbaekZW5giK5LsgGdCVyPHqLpl+cF1abyzZpNFjcYrwxuOTdlxQ6DUjCp",
+	"67o+cG1sOTnfuG+oS91n3VKFEx07ad4tLp9rJ5W5Q3vnVdacX2QXAdVpHIOaFNCMZKCJ/VMGGFCvipUy",
+	"Q9MLq7RS14TiWOr7sXCt9p5kk431ugvFwYIiG5Vido8Em+vy6xvPul77/eJZCYGBNgoY+OB32wS/ux1E",
+	"2c+xkzSuONXMkiyonuDOHWdZ22N89N4pgYIYDSrt4HHh0rkZzXqhnu+LqrEPSnFc2TW2rADc55ndkEdp",
+	"S2tJqbu4cb7MpbkcghdHptOZ3vCqW/hIdnWGthzX7Ul26Of/eFRrlcZ889I6gQ1Vmki9cBXy8sjnnZG6",
+	"3p/lJMz51T4FbjvFniQ757za4rwsffDnGVm+6IxMhBzPXHoQnevVNJJD7iLQluvubunnofq9C85WlO9u",
+	"dv1lVD+VVyhc45Ea34dtWcFQkLk/A0hSnU7/VrxMU43uuruRp6l2TGub9M/c9J8057tLk3V61lk8XnKm",
+	"L3xYLoeeR+sk962m0pPkds+fZ0jtq1P6LMo/Vlav0cMZT5eoYefucnIQA49cx52ACUc1fLbDNYTe859u",
+	"Ia+DWgyXBd4WQDb03xZPfMSK6+PvWlCsPGjunRXVMdzyF3iL1TcpRPwWiCT+6t0nhKWHLMv+CwAA//8m",
+	"71uktiQAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
