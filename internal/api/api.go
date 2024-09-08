@@ -5,7 +5,6 @@ import (
 	"authenticator/internal/spec"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -112,35 +111,18 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
-	// recupera grupo de permissões
-	group, err := api.store.GetPermissionsGroup(r.Context(), user.GroupID)
-	if err != nil {
-		api.logger.Error("Falha ao tentar buscar grupo por user.GroupId", zap.Error(err))
-		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
-	}
-
-	// mapeia grupos (json)
-	groups := make(map[string]interface{})
-	json.Unmarshal(group, &groups)
-
-	// verifica se o grupo da aplicação está na lista de grupos do usuário
-	if groups[credentials.Application] == nil {
-		return spec.PostLoginJSON401Response(spec.Unauthorized{Feedback: "Usuário cadastrado, mas sem acesso à aplicação"})
-	}
-
-	// monta UUIDs
-	groupId := uuid.MustParse(fmt.Sprintf("%+v", groups[credentials.Application]))
-	applicationId := uuid.MustParse(credentials.Application)
+	// monta UUID
+	applicationUUID = uuid.MustParse(credentials.Application)
 
 	// busca informações da aplicação
-	application, err := api.store.GetApplication(r.Context(), applicationId)
+	application, err := api.store.GetApplication(r.Context(), applicationUUID)
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
 		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
 	// busca permissões do grupo na aplicação
-	permissions, err := api.store.GetPermissionsGroup(r.Context(), groupId)
+	permissions, err := api.store.GetPermissionsGroup(r.Context(), user.GroupID)
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar permissões por groupId", zap.Error(err))
 		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
