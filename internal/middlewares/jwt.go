@@ -30,42 +30,47 @@ type middleware func(http.Handler) http.Handler
 func (m *JwtMiddleware) Middleware() middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// ignora rotas publicas
 			if r.URL.Path == "/login" || strings.HasPrefix(r.URL.Path, "/docs") {
 				next.ServeHTTP(w, r)
 				return
 			}
 
+			// recupera e valida o Bearer Token
 			auth := r.Header.Get("Authorization")
 			parts := strings.Split(auth, " ")
-
 			if auth == "" || len(parts) < 1 {
 				http.Error(w, "{ \"feedback\": \"Não foi fornecido token de autenticação\" }", http.StatusUnauthorized)
 				return
 			}
-
 			bearerToken := parts[1]
 
+			// recupera o token de assinatura da aplicação do JWT
 			token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (interface{}, error) {
+				// valida metodo de assinatura
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("método de assinatura inesperado: %v", token.Header["alg"])
 				}
 
+				// recupera claims do token
 				claims, _ := token.Claims.(jwt.MapClaims)
 
+				// recupera a aplicação que assinou o token
 				application, err := m.store.GetApplication(r.Context(), uuid.MustParse(fmt.Sprintf("%v", claims["aud"])))
 				if err != nil {
 					m.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
 					return nil, fmt.Errorf("internal server error")
 				}
 
+				// retorna token de assinatura
 				return []byte(application.Secret.String()), nil
 			})
-
 			if err != nil {
 				http.Error(w, fmt.Sprintf("{ \"feedback\": \"%v\" }", err.Error()), http.StatusUnauthorized)
 				return
 			}
 
+			// requipera os dados do JWT
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok || !token.Valid {
 				m.logger.Error("Token inválido", zap.Any("claims", claims))
@@ -73,11 +78,12 @@ func (m *JwtMiddleware) Middleware() middleware {
 				return
 			}
 
+			// recupera permissões do grupo na aplicação
 			permissionsString := fmt.Sprintf("%v", claims["roles"])
-
 			permissions := make(map[string]*int)
 			json.Unmarshal([]byte(permissionsString), &permissions)
 
+			// cria contexto com as permissões
 			ctx := context.WithValue(r.Context(), permissionsHelpers.Key, permissions)
 
 			next.ServeHTTP(w, r.WithContext(ctx))

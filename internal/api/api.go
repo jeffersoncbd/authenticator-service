@@ -66,9 +66,8 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 // Autentica usuário
 // (POST /applications/{id}/login)
 func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
+	// decodifica body armazenando as credenciais
 	var credentials spec.LoginCredentials
-
-	// decodifica body armazenando dados nas credenciais
 	err := json.NewDecoder(r.Body).Decode(&credentials)
 	if err != nil {
 		return spec.LoginJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
@@ -79,6 +78,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 		return spec.LoginJSON400Response(spec.Error{Feedback: api.validator.Translate(err)})
 	}
 
+	// valida UUID
 	applicationUUID, err := uuid.Parse(credentials.Application)
 	if err != nil {
 		return spec.LoginJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
@@ -132,7 +132,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss":   "authenticator",
 		"sub":   user.Email,
-		"aud":   credentials.Application,
+		"aud":   applicationUUID,
 		"exp":   time.Now().Add(time.Hour * 12).Unix(),
 		"iat":   time.Now().Unix(),
 		"roles": string(permissions[:]),
