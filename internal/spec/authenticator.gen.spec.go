@@ -95,6 +95,12 @@ type NewGroup struct {
 	Name string `json:"name" validate:"required,min=3"`
 }
 
+// NewPermission defines model for NewPermission.
+type NewPermission struct {
+	Key        string `json:"key" validate:"required,min=3"`
+	Permission int    `json:"permission" validate:"required"`
+}
+
 // NewUser defines model for NewUser.
 type NewUser struct {
 	Email    openapi_types.Email `json:"email" validate:"required,email"`
@@ -164,6 +170,9 @@ func (t *Status) FromValue(value string) error {
 // NewApplicationJSONBody defines parameters for NewApplication.
 type NewApplicationJSONBody NewApplication
 
+// AddPermissionJSONBody defines parameters for AddPermission.
+type AddPermissionJSONBody NewPermission
+
 // NewGroupJSONBody defines parameters for NewGroup.
 type NewGroupJSONBody NewGroup
 
@@ -181,6 +190,14 @@ type NewApplicationJSONRequestBody NewApplicationJSONBody
 
 // Bind implements render.Binder.
 func (NewApplicationJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
+
+// AddPermissionJSONRequestBody defines body for AddPermission for application/json ContentType.
+type AddPermissionJSONRequestBody AddPermissionJSONBody
+
+// Bind implements render.Binder.
+func (AddPermissionJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -320,6 +337,46 @@ func NewApplicationJSON401Response(body Unauthorized) *Response {
 // NewApplicationJSON500Response is a constructor method for a NewApplication response.
 // A *Response is returned with the configured status code and content type from the spec.
 func NewApplicationJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
+// AddPermissionJSON201Response is a constructor method for a AddPermission response.
+// A *Response is returned with the configured status code and content type from the spec.
+func AddPermissionJSON201Response(body BasicResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        201,
+		contentType: "application/json",
+	}
+}
+
+// AddPermissionJSON400Response is a constructor method for a AddPermission response.
+// A *Response is returned with the configured status code and content type from the spec.
+func AddPermissionJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// AddPermissionJSON401Response is a constructor method for a AddPermission response.
+// A *Response is returned with the configured status code and content type from the spec.
+func AddPermissionJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// AddPermissionJSON500Response is a constructor method for a AddPermission response.
+// A *Response is returned with the configured status code and content type from the spec.
+func AddPermissionJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -615,6 +672,9 @@ type ServerInterface interface {
 	// Cadastra uma aplicação
 	// (POST /applications)
 	NewApplication(w http.ResponseWriter, r *http.Request) *Response
+	// Adiciona uma nova permissão em um grupo de usuários de uma aplicação
+	// (POST /applications/{application_id}/groups/{group_id}/permissions)
+	AddPermission(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *Response
 	// Todas as informações de uma aplicação
 	// (GET /applications/{id})
 	FindApplicationByID(w http.ResponseWriter, r *http.Request, id string) *Response
@@ -672,6 +732,42 @@ func (siw *ServerInterfaceWrapper) NewApplication(w http.ResponseWriter, r *http
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.NewApplication(w, r)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// AddPermission operation middleware
+func (siw *ServerInterfaceWrapper) AddPermission(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ------------- Path parameter "application_id" -------------
+	var applicationID string
+
+	if err := runtime.BindStyledParameter("simple", false, "application_id", chi.URLParam(r, "application_id"), &applicationID); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "application_id"})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupID string
+
+	if err := runtime.BindStyledParameter("simple", false, "group_id", chi.URLParam(r, "group_id"), &groupID); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "group_id"})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.AddPermission(w, r, applicationID, groupID)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -995,6 +1091,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 	r.Route(options.BaseURL, func(r chi.Router) {
 		r.Get("/applications", wrapper.ApplicationsList)
 		r.Post("/applications", wrapper.NewApplication)
+		r.Post("/applications/{application_id}/groups/{group_id}/permissions", wrapper.AddPermission)
 		r.Get("/applications/{id}", wrapper.FindApplicationByID)
 		r.Get("/applications/{id}/groups", wrapper.GroupsList)
 		r.Post("/applications/{id}/groups", wrapper.NewGroup)
@@ -1027,29 +1124,31 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+RZzW7bOBB+FYK7RyV2my6wMNBDkqaLLIqi2KTYQ5rDRBzbbCRSS1JOnEAPs+ih2Afo",
-	"Za9+sYKkLEsO5Z/E+WuBopElivxm5uM3M9Q1jWWaSYHCaNq7pgp1JoVG9+NVt2v/xFIYFMZeQpYlPAbD",
-	"peh81lLYezoeYgr26leFfdqjv3Rmc3b8U905UEoqWhRFRBnqWPHMTkJ7dA8YUfhPjtrQIqKvui82tuZH",
-	"AbkZSsWvkIWWbj6P6G8btPdQGFQCkiNUI1St1k+HET+OTAdG5TIuDrszFA4UY9xeQ/JByQyV4TZcfUg0",
-	"RjSr3bqmnNn/+1KlYGiP5jlnNKJmnCHtUW0UFwNruIAU7cC5B0VEbWS4QkZ7J9S964aeVnPIs88Yu8Dt",
-	"gebxvkIH86+SRmvC7SOyM4jPA1ii1WwJQa5mbYW9ebhzOBZC8DF/lKX/UDLPHpRTEc1QpVxrLoWbrrkf",
-	"DrRBYvEZSSb/EbextJEkwwQIwz4XfPJ18kUShqScaPINNZGCIQESD2GE9kVJOENheJ/HwKQiTBKFca60",
-	"JEgkGUEilR8nJv+nqCRhUE34RdIbvmrdC02DQk4OScGjRPudHHCxr9B5BhK9JgpoytBiBkT0cmsgt/DS",
-	"KNgyMHAzjCDhDIwdVoG2FmAKPGnM6e/cadIMtL6QqsnW6uZtp45SLl7/HqVw+XrnpVf0uv/rPooqK6pV",
-	"W6NyH4Jp5DmK5ZTxw5bI5Hu8uH0WCkvBGsGcQ9yag97jxW0U7W74HCN2WlBGdUYcsjbUHzWuqwmb3jOR",
-	"f71ole61/fFIW7D0+0p7r3T9kQGTryuHunppUR1YTj0Psnw5hGkGBkWeOlGJDR9Zm7goL08DCbdRzT5K",
-	"frlHFi8qKO4UiDm2tMbFrmMLCG7GR3ZGD/8MQaHazc1w9uvt1JI//z6mZR1vZ/JPZ5YNjck8e7noy1Ap",
-	"lGHsCpjJV1fjMCC7Hw5JBgqIJDYKWyiYvQ1OYnxh9IlaODbDx2Ck+kS37ZLcJHbNxiMa0REq7Vd7sd3d",
-	"7lpvygwFZJz26I67ZXeQGTprOzUtczcG6LokG9CpwPXq3Yp+x7WhUbOrfLlml8UNpkujW09OReViUArG",
-	"obbL4rL15Mxz31DX2s/QUpURHTto1i4uHmsH1clDeydN2pycFqcR1XmaghpX0IxkoIn9VwcYUS+LjTpD",
-	"01MrtVIHYjGXtj31UZs9ycYba3XnFpkTZKNyLG5QYHNNfrjvDLXab+a3SgwMtFHAwIe+u0rou0+DJvsl",
-	"dpKnDaPaOVJEzQ3cueasaN3Fb7lgtajujQ/fOClQkKJBpR1ALlw+N8NpM9TzjVEz+lEtkkvbxhVLAPd6",
-	"YV1yJ21ZWVJCJzfOlpk214Pw7Oh0PNUb3jQL78ivzsDW4+3JwpXr0zTxo7FrpczlG5aVc9ZA5ZnUc8cf",
-	"z49v3hipw/Ys5l1JqYVZz3v1iVLqXlJwyaMnnHylD/Ys7cpnnXaJkKOpSbeib1gwc+3I2qKXtsX6qeXS",
-	"9ZjrVPi5zif/Ki6fs0hWNixmlqfOQl107vuZZNHz5RFUcbkaTqP6Ywni1KoALxcIXuf6bHyQAk9cR5KB",
-	"iYfhnsTGc88PfYI8joIYziq8KwDZ0CnuPW+p6jRthY3VfbiN5Z5Z0RzBFX+GXf2uySHhV0Ak8SeRXvCX",
-	"bapEDrhzY1j33Remezr8ufFN8YEp0fx6FqDEsTxH4Y76cuOPPp9Yiz4L/hRgKNwa3RdmG/Ci+B4AAP//",
-	"8fd+J7YjAAA=",
+	"H4sIAAAAAAAC/+Ra3W7bNhR+FYLbpVK7PwMGA71I+jNkKIpgbbGLNhhOxGObjURqJOXWDfQwQy+KPUBv",
+	"dusXG0jKsqRSjpw4id0CRW1L1OF3eL7z8RwqFzSWaSYFCqPp6IIq1JkUGt2PR8Oh/YilMCiM/QpZlvAY",
+	"DJdi8F5LYa/peIop2G8/KxzTEf1psLI58Hf14JlSUtGiKCLKUMeKZ9YIHdEjYETh3zlqQ4uIPhre39qc",
+	"bwTkZioV/4QsNHXzfkR/2aK/x8KgEpC8QjVD1en9chjx48hyYFRO4+JwuELhQDHG7XdITpTMUBluwzWG",
+	"RGNEs9qlC8qZ/X8sVQqGjmiec0YjauYZ0hHVRnExsY4LSNEObN0oImojwxUyOnpL3bNu6GllQ569x9gF",
+	"7gg0j58odDD/KGm0IdwxIjuD+DyAJernSwhyZbUT9vbhtnCsheBjfidT/6Zknt0qpyKaoUq51lwKZ66Z",
+	"D8+0QWLxGUkW/xKXWNpIkmEChOGYC774svgsCUNSGlp8RU2kYEiAxFOYoX1QEs5QGD7mMTCpCJNEYZwr",
+	"LQkSSWaQSOXHicV/KSpJGFQGP0v6zVp15kLTodAih6TgTqL9Qk64eKLQrQwkekMU0JSh9QyI6MeDiTzA",
+	"j0bBgYGJszCDhDMwdlgF2nqAKfCkYdNfuZbRDLT+IFWTrdXFq5qOUi4e/xql8PHxwwde0evrX1+jqPKi",
+	"mrUzKjchmEaeo7icMn7YJTL5Ej9cfRcKS8EGwWwh7tyDXuKHqyja9fA5RjzsQBnVGXHMulCfVBKyIfRz",
+	"nG8BeV3Daua4MDhBdY1IWXgN4x3+v9G4qSZuWzMi/3jRuXVdZVXvQoJK3vXSnnLpXxkw+abbga4eWlcH",
+	"l6bbIMuHQ5hWYFDkqRPV2PCZ9YmL8utpoOBoVPN3sr/eIIvXFVTXCkSLLZ1xsfPYAoqb+Str0cM/Q1Co",
+	"DnMzXf16vvTk9z9f07KPsZb83ZVnU2Myz14uxjJUCmYYuwJu8cXVeAzI4ckxyUABkcRG4QAFs5fBSawv",
+	"DN9RC8dWODEYqd7Re3ZKbhI7Z+MWjegMldc8ev/e8N7QrqbMUEDG6Yg+dJdsBpmp83ZQ03J3YYKuS7QB",
+	"XQr8qN6t6RdcGxo1u+oHG3aZ3GB6aXTrm3NRLTEoBfNQ22lx2Xp6tXJfUdfa79BUlRMDO2jVLq8fawfV",
+	"yUNHb5u0eXtanEZU52kKal5BM5KBJvZfHWBEvSw26ixNT63USh2IRats8dRHbY4km2+t1W9N0hJko3Is",
+	"vqHA9g45wn136KjhaTtVYmCgjQIGPvTDPqEf7gZNnpTYSZ42nOrmSBE1E3hwUfv1F2fFYGJrRz24cJ/u",
+	"SqtXDZPskLFa/Wb1QkGKBpV2XnDhNn0zXXaMI9qcmLbpEtVCf2mf3bNmcI8XRRTEs3T4NpGc3lgy1oJx",
+	"F7m4LgdPqhOGvU6+Q8ZjW9+45BNyVj86IZiSPCUTlWfulCbX+eIfxaV2PzqT1edeME05Kzo32+dcsJr4",
+	"Hs2Pn/bKwDvg+jVKgN47f+iA2fmyKqHqy793xHu9LAt40y28zjawkv5OmrlThWU1972xq1eB6c9VepeW",
+	"Lv1165R2//jmnZE67E9PRVtTnPpV3VFK3cjmXPJoh2tkWe5d1QYt97o6tvuzXG3Hm9M3LJi5dmTt0Ms3",
+	"9u6PLJfuKGiTRrwqk/ZYJHuWep46a3XRLd+PJIueLzvWrXg1XEb1+xLEpVcBXq4RvMHF2fxZCjxxHUkG",
+	"Jp6GexIbzyM/dAd5HD4FOKvw9gCypZctN5xS1aF3j8Qa3l5iuXtWNGfwie9j/29ySPgnIJL4FwZe8C9L",
+	"qkROuOg+R3Mvwm/ojPabP324ZUo0X/IHKPFanqNwJ/K58W8odqxFXwV/CTAUbo3le96iKIr/AwAA//9Y",
+	"k2koXSgAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

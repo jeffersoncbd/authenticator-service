@@ -11,6 +11,31 @@ import (
 	"github.com/google/uuid"
 )
 
+const addKeyInGroup = `-- name: AddKeyInGroup :exec
+UPDATE groups
+SET
+    permissions = jsonb_set(permissions, $3, $4, true)
+WHERE
+    id = $2 AND application_id = $1
+`
+
+type AddKeyInGroupParams struct {
+	ApplicationID uuid.UUID
+	ID            uuid.UUID
+	Path          interface{}
+	Replacement   []byte
+}
+
+func (q *Queries) AddKeyInGroup(ctx context.Context, arg AddKeyInGroupParams) error {
+	_, err := q.db.Exec(ctx, addKeyInGroup,
+		arg.ApplicationID,
+		arg.ID,
+		arg.Path,
+		arg.Replacement,
+	)
+	return err
+}
+
 const getGroupByName = `-- name: GetGroupByName :one
 SELECT id, name, application_id, permissions FROM groups
 WHERE

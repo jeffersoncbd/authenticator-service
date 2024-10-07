@@ -194,6 +194,21 @@ components:
         - permissions
       additionalProperties: false
 
+    NewPermission:
+      type: object
+      properties:
+        key:
+          type: string
+          x-go-extra-tags:
+            validate: required,min=3
+        permission:
+          type: integer
+          x-go-extra-tags:
+            validate: required
+      required:
+        - key
+        - permission
+      additionalProperties: false
   responses:
     "401":
       description: Unauthorized
@@ -381,6 +396,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BasicCreationResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+
+  /applications/{application_id}/groups/{group_id}/permissions:
+    post:
+      operationId: AddPermission
+      security:
+        - bearerAuth: []
+      summary: Adiciona uma nova permissão em um grupo de usuários de uma aplicação
+      tags:
+        - groups
+      parameters:
+        - in: path
+          name: application_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+        - in: path
+          name: group_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPermission"
+      responses:
+        "201":
+          description: Permissão cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
         "400":
           $ref: "#/components/responses/400"
         "401":
