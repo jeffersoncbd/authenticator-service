@@ -193,6 +193,7 @@ components:
         - name
         - permissions
       additionalProperties: false
+
   responses:
     "401":
       description: Unauthorized
@@ -216,6 +217,7 @@ components:
 paths:
   /login:
     post:
+      operationId: Login
       summary: Autentica usuário
       tags:
         - session
@@ -241,6 +243,7 @@ paths:
 
   /applications:
     get:
+      operationId: ApplicationsList
       security:
         - bearerAuth: []
       summary: Lista todas as aplicações
@@ -260,6 +263,7 @@ paths:
         "500":
           $ref: "#/components/responses/500"
     post:
+      operationId: NewApplication
       security:
         - bearerAuth: []
       summary: Cadastra uma aplicação
@@ -287,6 +291,7 @@ paths:
 
   /applications/{id}:
     get:
+      operationId: FindApplicationByID
       security:
         - bearerAuth: []
       summary: Todas as informações de uma aplicação
@@ -317,6 +322,7 @@ paths:
 
   /applications/{id}/groups:
     get:
+      operationId: GroupsList
       security:
         - bearerAuth: []
       summary: Lista os grupos de permissões de uma aplicação
@@ -347,6 +353,7 @@ paths:
         "500":
           $ref: "#/components/responses/500"
     post:
+      operationId: NewGroup
       security:
         - bearerAuth: []
       summary: Cadastra um novo grupo de permissões de uma aplicação
@@ -383,6 +390,7 @@ paths:
 
   /applications/{id}/users:
     get:
+      operationId: UsersList
       security:
         - bearerAuth: []
       summary: Lista os usuários de uma aplicação
@@ -413,6 +421,7 @@ paths:
         "500":
           $ref: "#/components/responses/500"
     post:
+      operationId: NewUser
       security:
         - bearerAuth: []
       summary: Cadastra um novo usuário
@@ -449,6 +458,7 @@ paths:
 
   /applications/{id}/users/{byEmail}:
     patch:
+      operationId: FindUserByEmail
       security:
         - bearerAuth: []
       summary: Atualiza o status de um usuário

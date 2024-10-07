@@ -65,23 +65,23 @@ func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 
 // Autentica usuário
 // (POST /applications/{id}/login)
-func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response {
+func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 	var credentials spec.LoginCredentials
 
 	// decodifica body armazenando dados nas credenciais
 	err := json.NewDecoder(r.Body).Decode(&credentials)
 	if err != nil {
-		return spec.PostLoginJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+		return spec.LoginJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
 	}
 
 	// valida dados de entrada
 	if err := api.validator.validate.Struct(credentials); err != nil {
-		return spec.PostLoginJSON400Response(spec.Error{Feedback: api.validator.Translate(err)})
+		return spec.LoginJSON400Response(spec.Error{Feedback: api.validator.Translate(err)})
 	}
 
 	applicationUUID, err := uuid.Parse(credentials.Application)
 	if err != nil {
-		return spec.PostLoginJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.LoginJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
 	}
 
 	// busca usuário no banco de dados
@@ -91,24 +91,24 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
+			return spec.LoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha ao buscar usuário", zap.String("email", string(credentials.Email)), zap.Error(err))
-		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
 	// verifica status
 	if user.Status == "inactive" {
-		return spec.PostLoginJSON401Response(spec.Unauthorized{Feedback: "Usuário está inativo"})
+		return spec.LoginJSON401Response(spec.Unauthorized{Feedback: "Usuário está inativo"})
 	}
 
 	// compara senhas
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return spec.PostLoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
+			return spec.LoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha comparar hash com senha", zap.String("password", string(credentials.Password)), zap.Error(err))
-		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
 	// monta UUID
@@ -118,14 +118,14 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 	application, err := api.store.GetApplication(r.Context(), applicationUUID)
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
-		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
 	// busca permissões do grupo na aplicação
 	permissions, err := api.store.GetPermissionsGroup(r.Context(), user.GroupID)
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar permissões por groupId", zap.Error(err))
-		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
 	// cria token JWT
@@ -142,9 +142,9 @@ func (api API) PostLogin(w http.ResponseWriter, r *http.Request) *spec.Response 
 	signedToken, err := token.SignedString([]byte(application.Secret.String()))
 	if err != nil {
 		api.logger.Error("Falha ao assinar token", zap.String("token", token.Raw), zap.Error(err))
-		return spec.PostLoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
 	// retorna token JWT para o cliente
-	return spec.PostLoginJSON200Response(spec.LoginResponse{Token: signedToken, Feedback: "sessão iniciada"})
+	return spec.LoginJSON200Response(spec.LoginResponse{Token: signedToken, Feedback: "sessão iniciada"})
 }
