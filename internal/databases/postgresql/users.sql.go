@@ -63,16 +63,23 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT name, email, status FROM users
+SELECT u.name, u.email, u.status, g.name AS "group"
+FROM
+    users u
+JOIN
+    groups g
+ON
+    u.group_id = g.id
 WHERE
-    application_id = $1
-ORDER BY name ASC
+    u.application_id = $1
+ORDER BY u.name ASC
 `
 
 type ListUsersRow struct {
 	Name   string
 	Email  string
 	Status string
+	Group  string
 }
 
 func (q *Queries) ListUsers(ctx context.Context, applicationID uuid.UUID) ([]ListUsersRow, error) {
@@ -84,7 +91,12 @@ func (q *Queries) ListUsers(ctx context.Context, applicationID uuid.UUID) ([]Lis
 	var items []ListUsersRow
 	for rows.Next() {
 		var i ListUsersRow
-		if err := rows.Scan(&i.Name, &i.Email, &i.Status); err != nil {
+		if err := rows.Scan(
+			&i.Name,
+			&i.Email,
+			&i.Status,
+			&i.Group,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

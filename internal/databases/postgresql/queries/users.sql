@@ -1,8 +1,14 @@
 -- name: ListUsers :many
-SELECT name, email, status FROM users
+SELECT u.name, u.email, u.status, g.name AS "group"
+FROM
+    users u
+JOIN
+    groups g
+ON
+    u.group_id = g.id
 WHERE
-    application_id = $1
-ORDER BY name ASC;
+    u.application_id = $1
+ORDER BY u.name ASC;
 
 -- name: GetUser :one
 SELECT * FROM users

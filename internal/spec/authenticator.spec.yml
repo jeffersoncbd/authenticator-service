@@ -114,10 +114,16 @@ components:
           format: password
           x-go-extra-tags:
             validate: required,min=8,max=32
+        groupId:
+          type: string
+          format: uuid
+          x-go-extra-tags:
+            validate: required
       required:
         - name
         - email
         - password
+        - groupId
       additionalProperties: false
     User:
       type: object
@@ -127,11 +133,14 @@ components:
         email:
           type: string
           format: email
+        group:
+          type: string
         status:
           $ref: "#/components/schemas/Status"
       required:
         - name
         - email
+        - group
         - status
       additionalProperties: false
     NewUserStatus:

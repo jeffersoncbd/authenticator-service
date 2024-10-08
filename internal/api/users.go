@@ -39,7 +39,7 @@ func (api API) UsersList(w http.ResponseWriter, r *http.Request, id string) *spe
 	}
 
 	// Converte os resultados para a estrutura de resposta
-	var users []spec.User
+	users := []spec.User{}
 	for _, row := range rows {
 		status := spec.Status{}
 		status.FromValue(row.Status)
@@ -47,6 +47,7 @@ func (api API) UsersList(w http.ResponseWriter, r *http.Request, id string) *spe
 			Name:   row.Name,
 			Email:  openapi_types.Email(row.Email),
 			Status: status,
+			Group:  row.Group,
 		})
 	}
 
@@ -61,17 +62,23 @@ func (api API) NewUser(w http.ResponseWriter, r *http.Request, id string) *spec.
 		return spec.NewUserJSON401Response(spec.Unauthorized{Feedback: err.Error()})
 	}
 
+	// Decodifica body e valida dados
+	var user spec.NewUser
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		return spec.NewUserJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
+	}
+
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(id)
 	if err != nil {
 		return spec.NewUserJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
 	}
 
-	// Decodifica body e valida dados
-	var user spec.NewUser
-	err = json.NewDecoder(r.Body).Decode(&user)
+	// Valida UUID do grupo
+	groupUUID, err := uuid.Parse(user.GroupID)
 	if err != nil {
-		return spec.NewUserJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
+		return spec.NewUserJSON400Response(spec.Error{Feedback: "ID do grupo de permissões inválido: " + err.Error()})
 	}
 
 	// Valida dados de entrada
@@ -105,6 +112,7 @@ func (api API) NewUser(w http.ResponseWriter, r *http.Request, id string) *spec.
 		Name:          user.Name,
 		Password:      string(hash),
 		ApplicationID: applicationUUID,
+		GroupID:       groupUUID,
 	})
 	if err != nil {
 		api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
