@@ -134,7 +134,17 @@ components:
           type: string
           format: email
         group:
-          type: string
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+          required:
+            - id
+            - name
+          additionalProperties: false
         status:
           $ref: "#/components/schemas/Status"
       required:

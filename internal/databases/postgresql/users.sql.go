@@ -63,7 +63,7 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT u.name, u.email, u.status, g.name AS "group"
+SELECT u.name, u.email, u.status, g.id AS "group_id", g.name AS "group_name"
 FROM
     users u
 JOIN
@@ -76,10 +76,11 @@ ORDER BY u.name ASC
 `
 
 type ListUsersRow struct {
-	Name   string
-	Email  string
-	Status string
-	Group  string
+	Name      string
+	Email     string
+	Status    string
+	GroupID   uuid.UUID
+	GroupName string
 }
 
 func (q *Queries) ListUsers(ctx context.Context, applicationID uuid.UUID) ([]ListUsersRow, error) {
@@ -95,7 +96,8 @@ func (q *Queries) ListUsers(ctx context.Context, applicationID uuid.UUID) ([]Lis
 			&i.Name,
 			&i.Email,
 			&i.Status,
-			&i.Group,
+			&i.GroupID,
+			&i.GroupName,
 		); err != nil {
 			return nil, err
 		}

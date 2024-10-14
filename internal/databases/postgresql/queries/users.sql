@@ -1,5 +1,5 @@
 -- name: ListUsers :many
-SELECT u.name, u.email, u.status, g.name AS "group"
+SELECT u.name, u.email, u.status, g.id AS "group_id", g.name AS "group_name"
 FROM
     users u
 JOIN

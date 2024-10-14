@@ -47,7 +47,13 @@ func (api API) UsersList(w http.ResponseWriter, r *http.Request, id string) *spe
 			Name:   row.Name,
 			Email:  openapi_types.Email(row.Email),
 			Status: status,
-			Group:  row.Group,
+			Group: struct {
+				ID   string "json:\"id\""
+				Name string "json:\"name\""
+			}{
+				ID:   row.GroupID.String(),
+				Name: row.GroupName,
+			},
 		})
 	}
 
