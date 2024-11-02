@@ -146,5 +146,5 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 	}
 
 	// retorna token JWT para o cliente
-	return spec.LoginJSON200Response(spec.LoginResponse{Token: signedToken, Feedback: "sessão iniciada"})
+	return spec.LoginJSON200Response(spec.LoginResponse{Token: signedToken, Feedback: "Sessão iniciada"})
 }

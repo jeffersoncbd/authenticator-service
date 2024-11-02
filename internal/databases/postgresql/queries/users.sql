@@ -20,7 +20,17 @@ INSERT INTO users
     ( "email", "name", "password", "application_id", "group_id" ) VALUES
     ( $1, $2, $3, $4, $5 );
 
--- name: UpdateUserStatus :exec
+-- name: UpdateUser :exec
 UPDATE users
-SET status = $3
+SET name = $3, group_id = $4, status = $5
+WHERE email = $2 AND application_id = $1;
+
+-- name: UpdatePasswordUser :exec
+UPDATE users
+SET password = $3
+WHERE email = $2 AND application_id = $1;
+
+-- name: UpdateEmailUser :exec
+UPDATE users
+SET email = $3
 WHERE email = $2 AND application_id = $1;

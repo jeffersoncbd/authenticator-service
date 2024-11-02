@@ -109,11 +109,6 @@ type NewUser struct {
 	Password string              `json:"password" validate:"required,min=8,max=32"`
 }
 
-// NewUserStatus defines model for NewUserStatus.
-type NewUserStatus struct {
-	Status Status `json:"status"`
-}
-
 // Unauthorized defines model for Unauthorized.
 type Unauthorized struct {
 	Feedback string `json:"feedback"`
@@ -128,6 +123,15 @@ type User struct {
 	} `json:"group"`
 	Name   string `json:"name"`
 	Status Status `json:"status"`
+}
+
+// UserUpdated defines model for UserUpdated.
+type UserUpdated struct {
+	GroupID     string               `json:"groupId" validate:"required"`
+	Name        string               `json:"name" validate:"required,min=3"`
+	NewEmail    *openapi_types.Email `json:"newEmail,omitempty" validate:"email"`
+	NewPassword *string              `json:"newPassword,omitempty" validate:"min=8,max=32"`
+	Status      Status               `json:"status"`
 }
 
 // N400 defines model for 400.
@@ -184,8 +188,8 @@ type NewGroupJSONBody NewGroup
 // NewUserJSONBody defines parameters for NewUser.
 type NewUserJSONBody NewUser
 
-// FindUserByEmailJSONBody defines parameters for FindUserByEmail.
-type FindUserByEmailJSONBody NewUserStatus
+// UserUpdateJSONBody defines parameters for UserUpdate.
+type UserUpdateJSONBody UserUpdated
 
 // LoginJSONBody defines parameters for Login.
 type LoginJSONBody LoginCredentials
@@ -222,11 +226,11 @@ func (NewUserJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
-// FindUserByEmailJSONRequestBody defines body for FindUserByEmail for application/json ContentType.
-type FindUserByEmailJSONRequestBody FindUserByEmailJSONBody
+// UserUpdateJSONRequestBody defines body for UserUpdate for application/json ContentType.
+type UserUpdateJSONRequestBody UserUpdateJSONBody
 
 // Bind implements render.Binder.
-func (FindUserByEmailJSONRequestBody) Bind(*http.Request) error {
+func (UserUpdateJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -589,9 +593,9 @@ func NewUserJSON500Response(body InternalServerError) *Response {
 	}
 }
 
-// FindUserByEmailJSON200Response is a constructor method for a FindUserByEmail response.
+// UserUpdateJSON200Response is a constructor method for a UserUpdate response.
 // A *Response is returned with the configured status code and content type from the spec.
-func FindUserByEmailJSON200Response(body BasicResponse) *Response {
+func UserUpdateJSON200Response(body BasicResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -599,9 +603,9 @@ func FindUserByEmailJSON200Response(body BasicResponse) *Response {
 	}
 }
 
-// FindUserByEmailJSON400Response is a constructor method for a FindUserByEmail response.
+// UserUpdateJSON400Response is a constructor method for a UserUpdate response.
 // A *Response is returned with the configured status code and content type from the spec.
-func FindUserByEmailJSON400Response(body Error) *Response {
+func UserUpdateJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -609,9 +613,9 @@ func FindUserByEmailJSON400Response(body Error) *Response {
 	}
 }
 
-// FindUserByEmailJSON401Response is a constructor method for a FindUserByEmail response.
+// UserUpdateJSON401Response is a constructor method for a UserUpdate response.
 // A *Response is returned with the configured status code and content type from the spec.
-func FindUserByEmailJSON401Response(body Unauthorized) *Response {
+func UserUpdateJSON401Response(body Unauthorized) *Response {
 	return &Response{
 		body:        body,
 		Code:        401,
@@ -619,9 +623,9 @@ func FindUserByEmailJSON401Response(body Unauthorized) *Response {
 	}
 }
 
-// FindUserByEmailJSON500Response is a constructor method for a FindUserByEmail response.
+// UserUpdateJSON500Response is a constructor method for a UserUpdate response.
 // A *Response is returned with the configured status code and content type from the spec.
-func FindUserByEmailJSON500Response(body InternalServerError) *Response {
+func UserUpdateJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -695,9 +699,9 @@ type ServerInterface interface {
 	// Cadastra um novo usuário
 	// (POST /applications/{id}/users)
 	NewUser(w http.ResponseWriter, r *http.Request, id string) *Response
-	// Atualiza o status de um usuário
-	// (PATCH /applications/{id}/users/{byEmail})
-	FindUserByEmail(w http.ResponseWriter, r *http.Request, id string, byEmail openapi_types.Email) *Response
+	// Atualiza um usuário
+	// (PUT /applications/{id}/users/{byEmail})
+	UserUpdate(w http.ResponseWriter, r *http.Request, id string, byEmail openapi_types.Email) *Response
 	// Autentica usuário
 	// (POST /login)
 	Login(w http.ResponseWriter, r *http.Request) *Response
@@ -925,8 +929,8 @@ func (siw *ServerInterfaceWrapper) NewUser(w http.ResponseWriter, r *http.Reques
 	handler(w, r.WithContext(ctx))
 }
 
-// FindUserByEmail operation middleware
-func (siw *ServerInterfaceWrapper) FindUserByEmail(w http.ResponseWriter, r *http.Request) {
+// UserUpdate operation middleware
+func (siw *ServerInterfaceWrapper) UserUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// ------------- Path parameter "id" -------------
@@ -948,7 +952,7 @@ func (siw *ServerInterfaceWrapper) FindUserByEmail(w http.ResponseWriter, r *htt
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := siw.Handler.FindUserByEmail(w, r, id, byEmail)
+		resp := siw.Handler.UserUpdate(w, r, id, byEmail)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -1102,7 +1106,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 		r.Post("/applications/{id}/groups", wrapper.NewGroup)
 		r.Get("/applications/{id}/users", wrapper.UsersList)
 		r.Post("/applications/{id}/users", wrapper.NewUser)
-		r.Patch("/applications/{id}/users/{byEmail}", wrapper.FindUserByEmail)
+		r.Put("/applications/{id}/users/{byEmail}", wrapper.UserUpdate)
 		r.Post("/login", wrapper.Login)
 	})
 	return r
@@ -1129,31 +1133,31 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"dv4SYMjdGsvX3UVRFP8FAAD///5jbONkKQAA",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

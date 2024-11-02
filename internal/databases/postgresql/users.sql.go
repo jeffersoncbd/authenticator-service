@@ -109,19 +109,61 @@ func (q *Queries) ListUsers(ctx context.Context, applicationID uuid.UUID) ([]Lis
 	return items, nil
 }
 
-const updateUserStatus = `-- name: UpdateUserStatus :exec
+const updateEmailUser = `-- name: UpdateEmailUser :exec
 UPDATE users
-SET status = $3
+SET email = $3
 WHERE email = $2 AND application_id = $1
 `
 
-type UpdateUserStatusParams struct {
+type UpdateEmailUserParams struct {
 	ApplicationID uuid.UUID
 	Email         string
+	Email_2       string
+}
+
+func (q *Queries) UpdateEmailUser(ctx context.Context, arg UpdateEmailUserParams) error {
+	_, err := q.db.Exec(ctx, updateEmailUser, arg.ApplicationID, arg.Email, arg.Email_2)
+	return err
+}
+
+const updatePasswordUser = `-- name: UpdatePasswordUser :exec
+UPDATE users
+SET password = $3
+WHERE email = $2 AND application_id = $1
+`
+
+type UpdatePasswordUserParams struct {
+	ApplicationID uuid.UUID
+	Email         string
+	Password      string
+}
+
+func (q *Queries) UpdatePasswordUser(ctx context.Context, arg UpdatePasswordUserParams) error {
+	_, err := q.db.Exec(ctx, updatePasswordUser, arg.ApplicationID, arg.Email, arg.Password)
+	return err
+}
+
+const updateUser = `-- name: UpdateUser :exec
+UPDATE users
+SET name = $3, group_id = $4, status = $5
+WHERE email = $2 AND application_id = $1
+`
+
+type UpdateUserParams struct {
+	ApplicationID uuid.UUID
+	Email         string
+	Name          string
+	GroupID       uuid.UUID
 	Status        string
 }
 
-func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) error {
-	_, err := q.db.Exec(ctx, updateUserStatus, arg.ApplicationID, arg.Email, arg.Status)
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.Exec(ctx, updateUser,
+		arg.ApplicationID,
+		arg.Email,
+		arg.Name,
+		arg.GroupID,
+		arg.Status,
+	)
 	return err
 }

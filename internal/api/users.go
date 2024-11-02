@@ -6,6 +6,7 @@ import (
 	"authenticator/internal/spec"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	openapi_types "github.com/discord-gophers/goapi-gen/types"
@@ -113,14 +114,13 @@ func (api API) NewUser(w http.ResponseWriter, r *http.Request, id string) *spec.
 	}
 
 	// Insere novo usuário no banco de dados e trata possíveis erros
-	err = api.store.InsertUser(r.Context(), postgresql.InsertUserParams{
+	if err = api.store.InsertUser(r.Context(), postgresql.InsertUserParams{
 		Email:         string(user.Email),
 		Name:          user.Name,
 		Password:      string(hash),
 		ApplicationID: applicationUUID,
 		GroupID:       groupUUID,
-	})
-	if err != nil {
+	}); err != nil {
 		api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
 		return spec.NewUserJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
@@ -128,41 +128,73 @@ func (api API) NewUser(w http.ResponseWriter, r *http.Request, id string) *spec.
 	return spec.NewUserJSON201Response(spec.BasicResponse{Feedback: "usuário registrado"})
 }
 
-// Atualiza o status de um usuário
-// (PATCH /applications/{id}/users/{byEmail})
-func (api API) FindUserByEmail(w http.ResponseWriter, r *http.Request, id string, byEmail openapi_types.Email) *spec.Response {
+// Atualiza um usuário
+// (PUT /applications/{id}/users/{byEmail})
+func (api API) UserUpdate(w http.ResponseWriter, r *http.Request, id string, byEmail openapi_types.Email) *spec.Response {
 	// Verifica se requisição possui a permissão necessária
-	if err := permissions.Check(r.Context(), usersIdentifier, permissions.ToDelete); err != nil {
-		return spec.FindUserByEmailJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	if err := permissions.Check(r.Context(), usersIdentifier, permissions.ToWrite); err != nil {
+		return spec.UserUpdateJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+	fmt.Println(r.Body)
+
+	// Decodifica body e valida dados
+	var user spec.UserUpdated
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		return spec.UserUpdateJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
 	}
 
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(id)
 	if err != nil {
-		return spec.FindUserByEmailJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.UserUpdateJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
 	}
 
-	// Decodifica body e valida dados
-	var body spec.NewUserStatus
-	err = json.NewDecoder(r.Body).Decode(&body)
+	if user.NewPassword != nil && *user.NewPassword != "" {
+		// Gera hash da senha
+		hash, err := bcrypt.GenerateFromPassword([]byte(*user.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
+			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		}
+
+		if err = api.store.UpdatePasswordUser(r.Context(), postgresql.UpdatePasswordUserParams{
+			ApplicationID: applicationUUID,
+			Email:         string(byEmail),
+			Password:      string(hash),
+		}); err != nil {
+			api.logger.Error("Falha ao atualizar senha do usuário", zap.Error(err))
+			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		}
+	}
+
+	// Valida UUID do grupo
+	groupUUID, err := uuid.Parse(user.GroupID)
 	if err != nil {
-		return spec.FindUserByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + err.Error()})
+		return spec.UserUpdateJSON400Response(spec.Error{Feedback: "ID do grupo de permissões inválido: " + err.Error()})
 	}
 
-	// Valida dados de entrada
-	if err := api.validator.validate.Struct(body); err != nil {
-		return spec.FindUserByEmailJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
-	}
-
-	// Atualiza status do usuário no banco de dados e trata possíveis erros
-	if err := api.store.UpdateUserStatus(r.Context(), postgresql.UpdateUserStatusParams{
+	if err = api.store.UpdateUser(r.Context(), postgresql.UpdateUserParams{
 		ApplicationID: applicationUUID,
 		Email:         string(byEmail),
-		Status:        body.Status.ToValue(),
+		Name:          user.Name,
+		GroupID:       groupUUID,
+		Status:        user.Status.ToValue(),
 	}); err != nil {
-		api.logger.Error("Falha ao atualizar status do usuário", zap.Error(err))
-		return spec.FindUserByEmailJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		api.logger.Error("Falha ao atualizar usuário", zap.Error(err))
+		return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
 	}
 
-	return spec.FindUserByEmailJSON200Response(spec.BasicResponse{Feedback: "status do usuário atualizado"})
+	if user.NewEmail != nil && *user.NewEmail != "" {
+		if err = api.store.UpdateEmailUser(r.Context(), postgresql.UpdateEmailUserParams{
+			ApplicationID: applicationUUID,
+			Email:         string(byEmail),
+			Email_2:       string(*user.NewEmail),
+		}); err != nil {
+			api.logger.Error("Falha ao atualizar email do usuário", zap.Error(err))
+			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		}
+	}
+
+	return spec.UserUpdateJSON200Response(spec.BasicResponse{Feedback: "usuário atualizado"})
 }

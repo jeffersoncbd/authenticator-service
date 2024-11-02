@@ -153,12 +153,33 @@ components:
         - group
         - status
       additionalProperties: false
-    NewUserStatus:
+    UserUpdated:
       type: object
       properties:
+        name:
+          type: string
+          x-go-extra-tags:
+            validate: required,min=3
+        newEmail:
+          type: string
+          format: email
+          x-go-extra-tags:
+            validate: email
+        newPassword:
+          type: string
+          format: password
+          x-go-extra-tags:
+            validate: min=8,max=32
+        groupId:
+          type: string
+          format: uuid
+          x-go-extra-tags:
+            validate: required
         status:
           $ref: "#/components/schemas/Status"
       required:
+        - name
+        - groupId
         - status
       additionalProperties: false
 
@@ -536,11 +557,11 @@ paths:
           $ref: "#/components/responses/500"
 
   /applications/{id}/users/{byEmail}:
-    patch:
-      operationId: FindUserByEmail
+    put:
+      operationId: UserUpdate
       security:
         - bearerAuth: []
-      summary: Atualiza o status de um usuário
+      summary: Atualiza um usuário
       tags:
         - users
       parameters:
@@ -565,10 +586,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NewUserStatus"
+              $ref: "#/components/schemas/UserUpdated"
       responses:
         "200":
-          description: Resposta vazia
+          description: Usuário atualizado
           content:
             application/json:
               schema:
