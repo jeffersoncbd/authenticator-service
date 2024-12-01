@@ -1,7 +1,7 @@
 package root
 
 import (
-	"authenticator/internal/databases/postgresql"
+	postgresql "authenticator/interfaces"
 	"context"
 	"errors"
 	"fmt"

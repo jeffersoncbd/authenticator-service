@@ -1,10 +1,10 @@
 package main
 
 import (
-	api "authenticator/internal/api"
-	"authenticator/internal/middlewares"
-	"authenticator/internal/root"
-	"authenticator/internal/spec"
+	"authenticator/api"
+	"authenticator/api/root"
+	"authenticator/middlewares"
+	"authenticator/spec"
 	"context"
 	"errors"
 	"fmt"

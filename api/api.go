@@ -1,8 +1,8 @@
 package api
 
 import (
-	"authenticator/internal/databases/postgresql"
-	"authenticator/internal/spec"
+	postgresql "authenticator/interfaces"
+	"authenticator/spec"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -42,10 +42,10 @@ type API struct {
 }
 
 func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
-	pt_br := pt_BR.New()
-	universal_translator := ut.New(pt_br, pt_br)
+	ptBr := pt_BR.New()
+	universalTranslator := ut.New(ptBr, ptBr)
 
-	translator, err := universal_translator.GetTranslator("pt_BR")
+	translator, err := universalTranslator.GetTranslator("pt_BR")
 	if !err {
 		logger.Fatal("Falha ao carregar tradutores")
 	}
@@ -94,7 +94,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 			return spec.LoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha ao buscar usuário", zap.String("email", string(credentials.Email)), zap.Error(err))
-		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// verifica status
@@ -108,7 +108,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 			return spec.LoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha comparar hash com senha", zap.String("password", string(credentials.Password)), zap.Error(err))
-		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// monta UUID
@@ -118,7 +118,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 	application, err := api.store.GetApplication(r.Context(), applicationUUID)
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
-		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// busca permissões do grupo na aplicação

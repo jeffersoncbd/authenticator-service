@@ -1,8 +1,8 @@
 package middlewares
 
 import (
-	"authenticator/internal/databases/postgresql"
-	permissionsHelpers "authenticator/internal/permissions"
+	permissionsHelpers "authenticator/api/permissions"
+	postgresql "authenticator/interfaces"
 	"context"
 	"encoding/json"
 	"fmt"

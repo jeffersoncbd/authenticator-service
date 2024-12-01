@@ -1,9 +1,9 @@
 package api
 
 import (
-	"authenticator/internal/databases/postgresql"
-	"authenticator/internal/permissions"
-	"authenticator/internal/spec"
+	"authenticator/api/permissions"
+	postgresql "authenticator/interfaces"
+	"authenticator/spec"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -34,7 +34,7 @@ func (api API) NewGroup(w http.ResponseWriter, r *http.Request, applicationId st
 	// Valida UUID da aplicação
 	applicationUuidID, err := uuid.Parse(applicationId)
 	if err != nil {
-		return spec.NewGroupJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.NewGroupJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Insere o novo grupo no banco de dados e trata possíveis erros
@@ -62,7 +62,7 @@ func (api API) GroupsList(w http.ResponseWriter, r *http.Request, applicationId 
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(applicationId)
 	if err != nil {
-		return spec.GroupsListJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.GroupsListJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Tenta buscar os grupos da aplicação no banco de dados e trata possíveis erros
@@ -101,7 +101,7 @@ func (api API) AddPermission(w http.ResponseWriter, r *http.Request, application
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(applicationID)
 	if err != nil {
-		return spec.AddPermissionJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.AddPermissionJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Valida UUID do grupo

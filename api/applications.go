@@ -1,8 +1,8 @@
 package api
 
 import (
-	"authenticator/internal/permissions"
-	"authenticator/internal/spec"
+	"authenticator/api/permissions"
+	"authenticator/spec"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -26,7 +26,7 @@ func (api API) ApplicationsList(w http.ResponseWriter, r *http.Request) *spec.Re
 	rows, err := api.store.ListApplicaions(r.Context())
 	if err != nil {
 		api.logger.Error("Falha ao tentar listar aplicações", zap.Error(err))
-		return spec.ApplicationsListJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.ApplicationsListJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// Converte os resultados para a estrutura de resposta
@@ -59,7 +59,7 @@ func (api API) FindApplicationByID(w http.ResponseWriter, r *http.Request, id st
 	row, err := api.store.GetApplication(r.Context(), applicationId)
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar aplicação", zap.Error(err))
-		return spec.FindApplicationByIDJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.FindApplicationByIDJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// Converte os resultados para a estrutura de resposta
@@ -96,14 +96,14 @@ func (api API) NewApplication(w http.ResponseWriter, r *http.Request) *spec.Resp
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		api.logger.Error("Falha ao consultar aplicação", zap.Error(err), zap.String("aplicação", application.Name))
-		return spec.NewApplicationJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.NewApplicationJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// Cadastra nova aplicação no banco de dados e trata possíveis erros
 	id, err := api.store.InsertApplication(r.Context(), application.Name)
 	if err != nil {
 		api.logger.Error("Falha ao cadastrar nova aplicação", zap.Error(err), zap.String("aplicação", application.Name))
-		return spec.NewApplicationJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.NewApplicationJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	return spec.NewApplicationJSON201Response(spec.BasicCreationResponse{Feedback: "aplicação cadastrada", ID: id.String()})

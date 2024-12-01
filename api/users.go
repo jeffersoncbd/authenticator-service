@@ -1,9 +1,9 @@
 package api
 
 import (
-	"authenticator/internal/databases/postgresql"
-	"authenticator/internal/permissions"
-	"authenticator/internal/spec"
+	"authenticator/api/permissions"
+	postgresql "authenticator/interfaces"
+	"authenticator/spec"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,14 +29,14 @@ func (api API) UsersList(w http.ResponseWriter, r *http.Request, id string) *spe
 	// Valida UUID
 	applicationUUID, err := uuid.Parse(id)
 	if err != nil {
-		return spec.UsersListJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.UsersListJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Tenta listar os usuários da aplicação no banco de dados e trata possíveis erros
 	rows, err := api.store.ListUsers(r.Context(), applicationUUID)
 	if err != nil {
 		api.logger.Error("Falha ao listar usuários", zap.Error(err))
-		return spec.UsersListJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.UsersListJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// Converte os resultados para a estrutura de resposta
@@ -79,7 +79,7 @@ func (api API) NewUser(w http.ResponseWriter, r *http.Request, id string) *spec.
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(id)
 	if err != nil {
-		return spec.NewUserJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.NewUserJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Valida UUID do grupo
@@ -103,14 +103,14 @@ func (api API) NewUser(w http.ResponseWriter, r *http.Request, id string) *spec.
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		api.logger.Error("Falha ao consultar email", zap.Error(err), zap.String("email", string(user.Email)))
-		return spec.NewUserJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.NewUserJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// Gera hash da senha
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
-		return spec.NewUserJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.NewUserJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	// Insere novo usuário no banco de dados e trata possíveis erros
@@ -122,7 +122,7 @@ func (api API) NewUser(w http.ResponseWriter, r *http.Request, id string) *spec.
 		GroupID:       groupUUID,
 	}); err != nil {
 		api.logger.Error("Falha ao inserir novo usuário", zap.Error(err))
-		return spec.NewUserJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.NewUserJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	return spec.NewUserJSON201Response(spec.BasicResponse{Feedback: "usuário registrado"})
@@ -147,7 +147,7 @@ func (api API) UserUpdate(w http.ResponseWriter, r *http.Request, id string, byE
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(id)
 	if err != nil {
-		return spec.UserUpdateJSON400Response(spec.Error{Feedback: "ID da aplicação inválido: " + err.Error()})
+		return spec.UserUpdateJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	if user.NewPassword != nil && *user.NewPassword != "" {
@@ -155,7 +155,7 @@ func (api API) UserUpdate(w http.ResponseWriter, r *http.Request, id string, byE
 		hash, err := bcrypt.GenerateFromPassword([]byte(*user.NewPassword), bcrypt.DefaultCost)
 		if err != nil {
 			api.logger.Error("Falha ao gerar hash de senha", zap.Error(err))
-			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 		}
 
 		if err = api.store.UpdatePasswordUser(r.Context(), postgresql.UpdatePasswordUserParams{
@@ -164,7 +164,7 @@ func (api API) UserUpdate(w http.ResponseWriter, r *http.Request, id string, byE
 			Password:      string(hash),
 		}); err != nil {
 			api.logger.Error("Falha ao atualizar senha do usuário", zap.Error(err))
-			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 		}
 	}
 
@@ -182,7 +182,7 @@ func (api API) UserUpdate(w http.ResponseWriter, r *http.Request, id string, byE
 		Status:        user.Status.ToValue(),
 	}); err != nil {
 		api.logger.Error("Falha ao atualizar usuário", zap.Error(err))
-		return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+		return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 	}
 
 	if user.NewEmail != nil && *user.NewEmail != "" {
@@ -192,7 +192,7 @@ func (api API) UserUpdate(w http.ResponseWriter, r *http.Request, id string, byE
 			Email_2:       string(*user.NewEmail),
 		}); err != nil {
 			api.logger.Error("Falha ao atualizar email do usuário", zap.Error(err))
-			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: "internal server error"})
+			return spec.UserUpdateJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
 		}
 	}
 
