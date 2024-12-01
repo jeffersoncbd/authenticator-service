@@ -450,7 +450,7 @@ paths:
         - bearerAuth: []
       summary: Adiciona uma nova permissão em um grupo de usuários de uma aplicação
       tags:
-        - groups
+        - permissions
       parameters:
         - in: path
           name: application_id
