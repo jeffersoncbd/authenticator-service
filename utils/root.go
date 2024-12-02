@@ -1,4 +1,4 @@
-package root
+package utils
 
 import (
 	postgresql "authenticator/interfaces"
@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Run(pool *pgxpool.Pool, ctx context.Context) error {
+func ConfigureRootUser(pool *pgxpool.Pool, ctx context.Context) error {
 	store := postgresql.New(pool)
 
 	applicationID, err := insertApplication(store, ctx)

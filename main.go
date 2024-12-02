@@ -2,9 +2,9 @@ package main
 
 import (
 	"authenticator/api"
-	"authenticator/api/root"
 	"authenticator/middlewares"
 	"authenticator/spec"
+	"authenticator/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -62,7 +62,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	if err := root.Run(pool, ctx); err != nil {
+	if err := utils.ConfigureRootUser(pool, ctx); err != nil {
 		return err
 	}
 

@@ -3,6 +3,7 @@ package api
 import (
 	postgresql "authenticator/interfaces"
 	"authenticator/spec"
+	"authenticator/utils"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -94,7 +95,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 			return spec.LoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha ao buscar usuário", zap.String("email", string(credentials.Email)), zap.Error(err))
-		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: utils.INTERNAL_SERVER_ERROR})
 	}
 
 	// verifica status
@@ -108,7 +109,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 			return spec.LoginJSON400Response(spec.Error{Feedback: "E-mail ou senha inválidos"})
 		}
 		api.logger.Error("Falha comparar hash com senha", zap.String("password", string(credentials.Password)), zap.Error(err))
-		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: utils.INTERNAL_SERVER_ERROR})
 	}
 
 	// monta UUID
@@ -118,7 +119,7 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 	application, err := api.store.GetApplication(r.Context(), applicationUUID)
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
-		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: INTERNAL_SERVER_ERROR})
+		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: utils.INTERNAL_SERVER_ERROR})
 	}
 
 	// busca permissões do grupo na aplicação

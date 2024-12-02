@@ -1,8 +1,8 @@
 package middlewares
 
 import (
-	permissionsHelpers "authenticator/api/permissions"
 	postgresql "authenticator/interfaces"
+	"authenticator/utils"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -56,7 +56,7 @@ func (m *JwtMiddleware) Middleware() middleware {
 			json.Unmarshal([]byte(permissionsString), &permissions)
 
 			// cria contexto com as permissões
-			ctx := context.WithValue(r.Context(), permissionsHelpers.Key, permissions)
+			ctx := context.WithValue(r.Context(), utils.ContextKey, permissions)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

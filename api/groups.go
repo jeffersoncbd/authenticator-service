@@ -1,9 +1,9 @@
 package api
 
 import (
-	"authenticator/api/permissions"
 	postgresql "authenticator/interfaces"
 	"authenticator/spec"
+	"authenticator/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +18,7 @@ const groupsIdentifier = "groups"
 // (POST /applications/{id}/groups)
 func (api API) NewGroup(w http.ResponseWriter, r *http.Request, applicationId string) *spec.Response {
 	// Verifica se requisição possui a permissão necessária
-	if err := permissions.Check(r.Context(), groupsIdentifier, permissions.ToWrite); err != nil {
+	if err := utils.CheckPermissions(r.Context(), groupsIdentifier, utils.KeyToWrite); err != nil {
 		return spec.NewGroupJSON401Response(spec.Unauthorized{Feedback: err.Error()})
 	}
 
@@ -34,7 +34,7 @@ func (api API) NewGroup(w http.ResponseWriter, r *http.Request, applicationId st
 	// Valida UUID da aplicação
 	applicationUuidID, err := uuid.Parse(applicationId)
 	if err != nil {
-		return spec.NewGroupJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
+		return spec.NewGroupJSON400Response(spec.Error{Feedback: utils.INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Insere o novo grupo no banco de dados e trata possíveis erros
@@ -55,14 +55,14 @@ func (api API) NewGroup(w http.ResponseWriter, r *http.Request, applicationId st
 // (GET /applications/{id}/groups)
 func (api API) GroupsList(w http.ResponseWriter, r *http.Request, applicationId string) *spec.Response {
 	// Verifica se requisição possui a permissão necessária
-	if err := permissions.Check(r.Context(), groupsIdentifier, permissions.ToWrite); err != nil {
+	if err := utils.CheckPermissions(r.Context(), groupsIdentifier, utils.KeyToWrite); err != nil {
 		return spec.GroupsListJSON401Response(spec.Unauthorized{Feedback: err.Error()})
 	}
 
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(applicationId)
 	if err != nil {
-		return spec.GroupsListJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
+		return spec.GroupsListJSON400Response(spec.Error{Feedback: utils.INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Tenta buscar os grupos da aplicação no banco de dados e trata possíveis erros
@@ -94,14 +94,14 @@ func (api API) GroupsList(w http.ResponseWriter, r *http.Request, applicationId 
 // (POST /applications/{application_id}/groups/{group_id}/permissions)
 func (api API) AddPermission(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *spec.Response {
 	// Verifica se requisição possui a permissão necessária
-	if err := permissions.Check(r.Context(), groupsIdentifier, permissions.ToWrite); err != nil {
+	if err := utils.CheckPermissions(r.Context(), groupsIdentifier, utils.KeyToWrite); err != nil {
 		return spec.AddPermissionJSON401Response(spec.Unauthorized{Feedback: err.Error()})
 	}
 
 	// Valida UUID da aplicação
 	applicationUUID, err := uuid.Parse(applicationID)
 	if err != nil {
-		return spec.AddPermissionJSON400Response(spec.Error{Feedback: INVALID_APPLICATION_ID + err.Error()})
+		return spec.AddPermissionJSON400Response(spec.Error{Feedback: utils.INVALID_APPLICATION_ID + err.Error()})
 	}
 
 	// Valida UUID do grupo

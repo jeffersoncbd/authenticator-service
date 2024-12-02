@@ -1,4 +1,4 @@
-package permissions
+package utils
 
 import (
 	"context"
@@ -8,15 +8,15 @@ import (
 
 type key int
 
-const Key key = 6789
+const ContextKey key = 6789
 
 type types string
 
-const ToRead types = "read"
-const ToWrite types = "write"
-const ToDelete types = "delete"
+const KeyToRead types = "read"
+const KeyToWrite types = "write"
+const KeyToDelete types = "delete"
 
-func Check(ctx context.Context, identifier string, need types) error {
+func CheckPermissions(ctx context.Context, identifier string, need types) error {
 	permissions := map[string]int{
 		"read":   1,
 		"write":  2,
@@ -25,7 +25,7 @@ func Check(ctx context.Context, identifier string, need types) error {
 
 	permissionInt := permissions[string(need)]
 
-	userPermissions := ctx.Value(Key).(map[string]*int)
+	userPermissions := ctx.Value(ContextKey).(map[string]*int)
 
 	keys := make([]string, 0, len(userPermissions))
 	for k := range userPermissions {
