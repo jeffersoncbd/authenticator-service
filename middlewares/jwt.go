@@ -36,41 +36,13 @@ func (m *JwtMiddleware) Middleware() middleware {
 				return
 			}
 
-			// recupera e valida o Bearer Token
-			auth := r.Header.Get("Authorization")
-			parts := strings.Split(auth, " ")
-			if auth == "" || len(parts) < 1 {
-				http.Error(w, "{ \"feedback\": \"Não foi fornecido token de autenticação\" }", http.StatusUnauthorized)
-				return
-			}
-			bearerToken := parts[1]
-
-			// recupera o token de assinatura da aplicação do JWT
-			token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (interface{}, error) {
-				// valida metodo de assinatura
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("método de assinatura inesperado: %v", token.Header["alg"])
-				}
-
-				// recupera claims do token
-				claims, _ := token.Claims.(jwt.MapClaims)
-
-				// recupera a aplicação que assinou o token
-				application, err := m.store.GetApplication(r.Context(), uuid.MustParse(fmt.Sprintf("%v", claims["aud"])))
-				if err != nil {
-					m.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
-					return nil, fmt.Errorf("internal server error")
-				}
-
-				// retorna token de assinatura
-				return []byte(application.Secret.String()), nil
-			})
+			token, err := m.extractJwt(r.Header.Get("Authorization"), r.Context())
 			if err != nil {
 				http.Error(w, fmt.Sprintf("{ \"feedback\": \"%v\" }", err.Error()), http.StatusUnauthorized)
 				return
 			}
 
-			// requipera os dados do JWT
+			// recupera os dados do JWT
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok || !token.Valid {
 				m.logger.Error("Token inválido", zap.Any("claims", claims))
@@ -89,4 +61,35 @@ func (m *JwtMiddleware) Middleware() middleware {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func (m *JwtMiddleware) extractJwt(header string, ctx context.Context) (*jwt.Token, error) {
+			parts := strings.Split(header, " ")
+			if header == "" || len(parts) < 1 {
+				return nil, fmt.Errorf("não foi fornecido token de autenticação")
+			}
+			bearerToken := parts[1]
+
+			// recupera o token de assinatura da aplicação do JWT
+			token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (interface{}, error) {
+				// valida metodo de assinatura
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("método de assinatura inesperado: %v", token.Header["alg"])
+				}
+
+				// recupera claims do token
+				claims, _ := token.Claims.(jwt.MapClaims)
+
+				// recupera a aplicação que assinou o token
+				application, err := m.store.GetApplication(ctx, uuid.MustParse(fmt.Sprintf("%v", claims["aud"])))
+				if err != nil {
+					m.logger.Error("Falha ao tentar buscar aplicação por applicationId", zap.Error(err))
+					return nil, fmt.Errorf("internal server error")
+				}
+
+				// retorna token de assinatura
+				return []byte(application.Secret.String()), nil
+			})
+
+			return token, err
 }
