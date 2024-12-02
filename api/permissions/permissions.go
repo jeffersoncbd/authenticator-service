@@ -3,6 +3,7 @@ package permissions
 import (
 	"context"
 	"errors"
+	"slices"
 )
 
 type key int
@@ -24,7 +25,19 @@ func Check(ctx context.Context, identifier string, need types) error {
 
 	permissionInt := permissions[string(need)]
 
-	permissionLevel := ctx.Value(Key).(map[string]*int)[identifier]
+	userPermissions := ctx.Value(Key).(map[string]*int)
+
+	keys := make([]string, 0, len(userPermissions))
+	for k := range userPermissions {
+			keys = append(keys, k)
+	}
+
+	if !slices.Contains(keys, identifier) {
+		return errors.New("usuário não possui a autorização necessária")
+	}
+
+	permissionLevel := userPermissions[identifier]
+
 	if permissionLevel == nil || *permissionLevel^permissionInt == permissionInt {
 		return errors.New("usuário não possui autorização necessária")
 	}
