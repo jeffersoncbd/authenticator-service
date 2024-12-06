@@ -234,7 +234,7 @@ components:
         - permissions
       additionalProperties: false
 
-    NewPermission:
+    Permission:
       type: object
       properties:
         key:
@@ -249,6 +249,7 @@ components:
         - key
         - permission
       additionalProperties: false
+
   responses:
     "401":
       description: Unauthorized
@@ -445,10 +446,10 @@ paths:
 
   /applications/{application_id}/groups/{group_id}/permissions:
     post:
-      operationId: AddPermission
+      operationId: SetPermission
       security:
         - bearerAuth: []
-      summary: Adiciona uma nova permissão em um grupo de usuários de uma aplicação
+      summary: Adiciona ou atualiza permissão de um grupo de usuários de uma aplicação
       tags:
         - permissions
       parameters:
@@ -473,10 +474,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NewPermission"
+              $ref: "#/components/schemas/Permission"
       responses:
         "201":
-          description: Permissão cadastrada
+          description: Permissão definida
           content:
             application/json:
               schema:
