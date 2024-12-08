@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const addOrUpdateKeyInGroup = `-- name: AddOrUpdateKeyInGroup :exec
+const addOrUpdatePermissionInGroup = `-- name: AddOrUpdatePermissionInGroup :exec
 UPDATE groups
 SET
     permissions = jsonb_set(permissions, $3, $4, true)
@@ -19,15 +19,15 @@ WHERE
     id = $2 AND application_id = $1
 `
 
-type AddOrUpdateKeyInGroupParams struct {
+type AddOrUpdatePermissionInGroupParams struct {
 	ApplicationID uuid.UUID
 	ID            uuid.UUID
 	Path          interface{}
 	Replacement   []byte
 }
 
-func (q *Queries) AddOrUpdateKeyInGroup(ctx context.Context, arg AddOrUpdateKeyInGroupParams) error {
-	_, err := q.db.Exec(ctx, addOrUpdateKeyInGroup,
+func (q *Queries) AddOrUpdatePermissionInGroup(ctx context.Context, arg AddOrUpdatePermissionInGroupParams) error {
+	_, err := q.db.Exec(ctx, addOrUpdatePermissionInGroup,
 		arg.ApplicationID,
 		arg.ID,
 		arg.Path,
@@ -36,7 +36,7 @@ func (q *Queries) AddOrUpdateKeyInGroup(ctx context.Context, arg AddOrUpdateKeyI
 	return err
 }
 
-const removeKeyInGroup = `-- name: RemoveKeyInGroup :exec
+const removePermissionFromGroup = `-- name: RemovePermissionFromGroup :exec
 UPDATE groups
 SET
     permissions = permissions - $3
@@ -44,13 +44,13 @@ WHERE
     id = $2 AND application_id = $1
 `
 
-type RemoveKeyInGroupParams struct {
+type RemovePermissionFromGroupParams struct {
 	ApplicationID uuid.UUID
 	ID            uuid.UUID
 	Permissions   []byte
 }
 
-func (q *Queries) RemoveKeyInGroup(ctx context.Context, arg RemoveKeyInGroupParams) error {
-	_, err := q.db.Exec(ctx, removeKeyInGroup, arg.ApplicationID, arg.ID, arg.Permissions)
+func (q *Queries) RemovePermissionFromGroup(ctx context.Context, arg RemovePermissionFromGroupParams) error {
+	_, err := q.db.Exec(ctx, removePermissionFromGroup, arg.ApplicationID, arg.ID, arg.Permissions)
 	return err
 }

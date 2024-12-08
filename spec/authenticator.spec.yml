@@ -446,10 +446,10 @@ paths:
 
   /applications/{application_id}/groups/{group_id}/permissions:
     post:
-      operationId: SetPermission
+      operationId: AddPermission
       security:
         - bearerAuth: []
-      summary: Adiciona ou atualiza permissão de um grupo de usuários de uma aplicação
+      summary: Adiciona uma permissão de um grupo de usuários de uma aplicação
       tags:
         - permissions
       parameters:
@@ -477,7 +477,7 @@ paths:
               $ref: "#/components/schemas/Permission"
       responses:
         "201":
-          description: Permissão definida
+          description: Permissão adicionada
           content:
             application/json:
               schema:
@@ -490,6 +490,56 @@ paths:
           $ref: "#/components/responses/500"
 
   /applications/{application_id}/groups/{group_id}/permissions/{permission_key}:
+    put:
+      operationId: UpdatePermission
+      security:
+        - bearerAuth: []
+      summary: Atualiza uma permissão de um grupo de usuários de uma aplicação
+      tags:
+        - permissions
+      parameters:
+        - in: path
+          name: application_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+        - in: path
+          name: group_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+        - in: path
+          name: permission_key
+          schema:
+            type: string
+          x-go-extra-tags:
+            validate: required
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Permission"
+      responses:
+        "200":
+          description: Permissão atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
     delete:
       operationId: DeletePermission
       security:
