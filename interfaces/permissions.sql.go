@@ -35,3 +35,22 @@ func (q *Queries) AddOrUpdateKeyInGroup(ctx context.Context, arg AddOrUpdateKeyI
 	)
 	return err
 }
+
+const removeKeyInGroup = `-- name: RemoveKeyInGroup :exec
+UPDATE groups
+SET
+    permissions = permissions - $3
+WHERE
+    id = $2 AND application_id = $1
+`
+
+type RemoveKeyInGroupParams struct {
+	ApplicationID uuid.UUID
+	ID            uuid.UUID
+	Permissions   []byte
+}
+
+func (q *Queries) RemoveKeyInGroup(ctx context.Context, arg RemoveKeyInGroupParams) error {
+	_, err := q.db.Exec(ctx, removeKeyInGroup, arg.ApplicationID, arg.ID, arg.Permissions)
+	return err
+}

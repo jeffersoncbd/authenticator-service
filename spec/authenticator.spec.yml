@@ -489,6 +489,52 @@ paths:
         "500":
           $ref: "#/components/responses/500"
 
+  /applications/{application_id}/groups/{group_id}/permissions/{permission_key}:
+    delete:
+      operationId: DeletePermission
+      security:
+        - bearerAuth: []
+      summary: Exclui uma permissão de um grupo de usuários de uma aplicação
+      tags:
+        - permissions
+      parameters:
+        - in: path
+          name: application_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+        - in: path
+          name: group_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+        - in: path
+          name: permission_key
+          schema:
+            type: string
+          x-go-extra-tags:
+            validate: required
+          required: true
+      responses:
+        "200":
+          description: Permissão excluída
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+
   /applications/{id}/users:
     get:
       operationId: UsersList
