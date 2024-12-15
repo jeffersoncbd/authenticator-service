@@ -88,3 +88,37 @@ func (api API) GroupsList(w http.ResponseWriter, r *http.Request, applicationId 
 
 	return spec.GroupsListJSON200Response(groups)
 }
+
+// Deleta um grupo de permissões de uma aplicação
+// (DELETE /applications/{application_id}/groups/{group_id})
+func (api API) DeleteGroup(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *spec.Response {
+	// Verifica se requisição possui a permissão necessária
+	if err := utils.CheckPermissions(r.Context(), groupsIdentifier, utils.KeyToDelete); err != nil {
+		return spec.DeleteGroupJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+
+	// Valida UUID da aplicação
+	applicationUUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return spec.DeleteGroupJSON400Response(spec.Error{Feedback: utils.INVALID_APPLICATION_ID + err.Error()})
+	}
+	// Valida UUID do grupo
+	groupUUID, err := uuid.Parse(groupID)
+	if err != nil {
+		return spec.DeleteGroupJSON400Response(spec.Error{Feedback: utils.INVALID_GROUP_ID + err.Error()})
+	}
+
+	// remove grupo da aplicação
+	err = api.store.DeleteGroup(r.Context(), postgresql.DeleteGroupParams{
+		ID: groupUUID,
+		ApplicationID: applicationUUID,
+	})
+	if err != nil {
+		api.logger.Error("Falha ao tentar remover grupo da aplicação", zap.Error(err))
+		return spec.DeleteGroupJSON500Response(spec.InternalServerError{Feedback: utils.INTERNAL_SERVER_ERROR})
+	}
+
+	return spec.DeleteGroupJSON200Response(spec.BasicResponse{Feedback: "grupo removido com sucesso"})
+}
+
+

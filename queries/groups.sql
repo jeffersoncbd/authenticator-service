@@ -6,7 +6,7 @@ WHERE
 -- name: GetPermissionsGroup :one
 SELECT permissions FROM groups
 WHERE
-    id = $1;
+    id = $1 AND application_id = $2;;
 
 -- name: ListGrousByApplicationId :many
 SELECT * FROM groups
@@ -19,3 +19,7 @@ INSERT INTO groups
     ( $1, $2, $3 )
 RETURNING "id";
 
+-- name: DeleteGroup :exec
+DELETE FROM groups
+WHERE
+    id = $1 AND application_id = $2;;

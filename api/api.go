@@ -123,7 +123,10 @@ func (api API) Login(w http.ResponseWriter, r *http.Request) *spec.Response {
 	}
 
 	// busca permissões do grupo na aplicação
-	permissions, err := api.store.GetPermissionsGroup(r.Context(), user.GroupID)
+	permissions, err := api.store.GetPermissionsGroup(r.Context(), postgresql.GetPermissionsGroupParams{
+		ID: user.GroupID,
+		ApplicationID: applicationUUID,
+	})
 	if err != nil {
 		api.logger.Error("Falha ao tentar buscar permissões por groupId", zap.Error(err))
 		return spec.LoginJSON500Response(spec.InternalServerError{Feedback: "internal server error"})

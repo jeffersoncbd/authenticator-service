@@ -11,6 +11,22 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteGroup = `-- name: DeleteGroup :exec
+DELETE FROM groups
+WHERE
+    id = $1 AND application_id = $2
+`
+
+type DeleteGroupParams struct {
+	ID            uuid.UUID
+	ApplicationID uuid.UUID
+}
+
+func (q *Queries) DeleteGroup(ctx context.Context, arg DeleteGroupParams) error {
+	_, err := q.db.Exec(ctx, deleteGroup, arg.ID, arg.ApplicationID)
+	return err
+}
+
 const getGroupByName = `-- name: GetGroupByName :one
 SELECT id, name, application_id, permissions FROM groups
 WHERE
@@ -37,11 +53,16 @@ func (q *Queries) GetGroupByName(ctx context.Context, arg GetGroupByNameParams) 
 const getPermissionsGroup = `-- name: GetPermissionsGroup :one
 SELECT permissions FROM groups
 WHERE
-    id = $1
+    id = $1 AND application_id = $2
 `
 
-func (q *Queries) GetPermissionsGroup(ctx context.Context, id uuid.UUID) ([]byte, error) {
-	row := q.db.QueryRow(ctx, getPermissionsGroup, id)
+type GetPermissionsGroupParams struct {
+	ID            uuid.UUID
+	ApplicationID uuid.UUID
+}
+
+func (q *Queries) GetPermissionsGroup(ctx context.Context, arg GetPermissionsGroupParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getPermissionsGroup, arg.ID, arg.ApplicationID)
 	var permissions []byte
 	err := row.Scan(&permissions)
 	return permissions, err
