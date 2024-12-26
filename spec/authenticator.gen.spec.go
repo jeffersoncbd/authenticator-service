@@ -114,6 +114,11 @@ type Unauthorized struct {
 	Feedback string `json:"feedback"`
 }
 
+// UpdatedGroup defines model for UpdatedGroup.
+type UpdatedGroup struct {
+	NewName string `json:"newName" validate:"required,min=3"`
+}
+
 // User defines model for User.
 type User struct {
 	Email openapi_types.Email `json:"email"`
@@ -179,6 +184,9 @@ func (t *Status) FromValue(value string) error {
 // NewApplicationJSONBody defines parameters for NewApplication.
 type NewApplicationJSONBody NewApplication
 
+// RenameGroupJSONBody defines parameters for RenameGroup.
+type RenameGroupJSONBody UpdatedGroup
+
 // AddPermissionJSONBody defines parameters for AddPermission.
 type AddPermissionJSONBody Permission
 
@@ -202,6 +210,14 @@ type NewApplicationJSONRequestBody NewApplicationJSONBody
 
 // Bind implements render.Binder.
 func (NewApplicationJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
+
+// RenameGroupJSONRequestBody defines body for RenameGroup for application/json ContentType.
+type RenameGroupJSONRequestBody RenameGroupJSONBody
+
+// Bind implements render.Binder.
+func (RenameGroupJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -397,6 +413,46 @@ func DeleteGroupJSON401Response(body Unauthorized) *Response {
 // DeleteGroupJSON500Response is a constructor method for a DeleteGroup response.
 // A *Response is returned with the configured status code and content type from the spec.
 func DeleteGroupJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
+// RenameGroupJSON200Response is a constructor method for a RenameGroup response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameGroupJSON200Response(body BasicResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// RenameGroupJSON400Response is a constructor method for a RenameGroup response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameGroupJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// RenameGroupJSON401Response is a constructor method for a RenameGroup response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameGroupJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// RenameGroupJSON500Response is a constructor method for a RenameGroup response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameGroupJSON500Response(body InternalServerError) *Response {
 	return &Response{
 		body:        body,
 		Code:        500,
@@ -815,6 +871,9 @@ type ServerInterface interface {
 	// Deleta um grupo de permissões de uma aplicação
 	// (DELETE /applications/{application_id}/groups/{group_id})
 	DeleteGroup(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *Response
+	// Renomeia o grupo de permissões de uma aplicação
+	// (PATCH /applications/{application_id}/groups/{group_id})
+	RenameGroup(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *Response
 	// Adiciona uma permissão de um grupo de usuários de uma aplicação
 	// (POST /applications/{application_id}/groups/{group_id}/permissions)
 	AddPermission(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *Response
@@ -917,6 +976,42 @@ func (siw *ServerInterfaceWrapper) DeleteGroup(w http.ResponseWriter, r *http.Re
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.DeleteGroup(w, r, applicationID, groupID)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// RenameGroup operation middleware
+func (siw *ServerInterfaceWrapper) RenameGroup(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ------------- Path parameter "application_id" -------------
+	var applicationID string
+
+	if err := runtime.BindStyledParameter("simple", false, "application_id", chi.URLParam(r, "application_id"), &applicationID); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "application_id"})
+		return
+	}
+
+	// ------------- Path parameter "group_id" -------------
+	var groupID string
+
+	if err := runtime.BindStyledParameter("simple", false, "group_id", chi.URLParam(r, "group_id"), &groupID); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "group_id"})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.RenameGroup(w, r, applicationID, groupID)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -1365,6 +1460,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 		r.Get("/applications", wrapper.ApplicationsList)
 		r.Post("/applications", wrapper.NewApplication)
 		r.Delete("/applications/{application_id}/groups/{group_id}", wrapper.DeleteGroup)
+		r.Patch("/applications/{application_id}/groups/{group_id}", wrapper.RenameGroup)
 		r.Post("/applications/{application_id}/groups/{group_id}/permissions", wrapper.AddPermission)
 		r.Delete("/applications/{application_id}/groups/{group_id}/permissions/{permission_key}", wrapper.DeletePermission)
 		r.Put("/applications/{application_id}/groups/{group_id}/permissions/{permission_key}", wrapper.UpdatePermission)
@@ -1400,33 +1496,34 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"H4sIAAAAAAAC/+xbW2/bNhT+KwS3R6V2LwMGA31I2rTIUBRB22APbVAw4rHNRiI1knLiGvoxQx+KPeyx",
+	"L3v1HxtI6mpLvsRKbKcBhtWWaPIcnu87NzIT7IswEhy4Vrg3wRJUJLgC++VZt2v+8QXXwLX5SKIoYD7R",
+	"TPDOFyW4eab8IYTEfPpVQh/38C+dYs6Oe6s6x1IKiZMk8TAF5UsWmUlwDx8RiiT8FYPSOPHws+7j1tY8",
+	"4yTWQyHZV6B1S1ffe/i3FvU94RokJ8F7kCOQjdpnw5Abh7KBXrqMtcNhIYUVilJmPpPgVIoIpGbGXH0S",
+	"KPBwVHo0wYya//eFDInGPRzHjGIP63EEuIeVlowPjOKchGAGzrxIPGwswyRQ3PuI7W/t0PN8DnHxBXxr",
+	"uCOimP9CghXzXQqjNcXtA9AL4l/WyOKtpkudyPmsjWK3L+6MHAtFcDbfytKvpYijO8WUhyOQIVOKCW6n",
+	"q/LhWGlARj4t0PQfZImltEARBARR6DPOpt+n3wSigNKJpj9AIcEpIIL8IRmB+aFAjALXrM98QoVEVCAJ",
+	"fiyVQIAEGpFASDeOT/8LQQpEST7hN4Hn9qqRC1WF6ja5zhVsxdpvxIDxFxLszpBArSkFqbqhxQjw8PXB",
+	"QBzAtZbkQJOBnWFEAkaJNsNyoY0GEBIWVOZ0TzaaNCJKXQlZRWv+8KZTeyHjz3/3QnL9/OkT59HL+1/e",
+	"Iy/XIl+10Sq34TC1uAS+HDJu2BI3+Raubh6F6l3BGsackbgxBr2Fq5t4tM3ks4h42iClV0bECW2S+kzB",
+	"uj6hbc547udGi4HZwxPaMslb2uUtETu15hyji92qM+1pHhrWtO4ljNvZq4oA6XSMaxiA3ICBRrzK5HXK",
+	"v9dExw6rPA6td/Q1G5ltZDz9eF6TOVTS8q0EyrPI7AC9kS+Bq7e3407SiWvlvT33kbmD3S08GhNNleNv",
+	"UaGWonQJ390e5HM2GSEFzpqbteP+lsPVcUvBpogxHK5OW/XjM+67HfNnlllgeLOSqSyYHr83czqTXgCR",
+	"IA9jPSy+vcp0/OPPDzgt8M1M7m2h8FDryPGf8b6oq5Ei8G1lM/1uix9K0OHpCYqIJEgg49UOgFPzmNjc",
+	"w1VMn7ARx6T+PtFCfsKPzJJMB2bNyivs4RFIFzTw40fdR12DbxEBJxHDPfzUPjJBUA+ttp1SkuMQDbZ9",
+	"YkCeZT69chtDvWFKY6/abnqyZvuFaQiX2rectSb5FhMpybiuH2PkMoVmsXM/QJX6UnVL5Up0zKCij7R4",
+	"rBlUBg/ufazC5uN5cu5hFYchkeNcNC0oUcj8VxbQw44RlQJE4XOTAQhVY4uZfN6BH5Q+EnTcWg9sZpGZ",
+	"kKZlDMkcBNrr/tU3pOp6cC9nqeITSpSWhBJn+u4qpu/uBkxepLKjOKwo1YyRxKsSuDMpffvMaNKxblB1",
+	"JvZf88Q5pQA0zEPrpX3+Og2YximFoEEqKznj1sfrYRbRe7i6GJ6FiFcy99J8YsXYZn+eJF6tPJmSdynJ",
+	"+YaucCkPFuH/tYwjgeDaD+Lpv1TsH+Qt4gzg0cCqMtMbpLCACw7azlMS7Q/n8fwODDAe8Lw2ntsPKJW6",
+	"bKVwcuc0IjomAftK9pFH74CLEJhJIjcg0g3CSWfmTKA+ZzmktNRPeaDiVqlYssQ28rpFRDzNj3EQocw3",
+	"Nfg+JnKHqeyWc8XRlGNhQdBYxdO/JRNL6Fk5pNqUo51J8eXzJYxXyAcfmNuSJNWdXyjPDdffdj5a4m+W",
+	"lO4hfY+N6Ow2yOvhKK4Jjy45euDZ3vFs+8F5O+TOU+V9DM6p7HcTnNOOS21X9RXjtNRlOxqfvFyJ+fen",
+	"wTHXY5y9Ymd1KXrlZRvsHfA+ZP1fVlULNun3FQlfI8xszZ217e8bulY6SUi7DqueIVgfoGZK6P3Dm1NG",
+	"qHp9Vu+tNZ1CrN5Xuxdlc67xLh+GZO2f/BhE7PUxCOJi1HJHyzjMWFmwNvjLM/P2Z3aX9k7KOieuea60",
+	"x05yxXzPQWehX7Tb9zO5RYeXHWslOm+YWfV+OcRMqxpcLnB4ncnF2N4GshVJfSMivwi1gwCuL/ZTnVYT",
+	"pKV7trd2SFa6h7Zr1f9ZxqR9PiYr1f7LSBSIAePNJ1r26v8tXb6Z+2OPO8ZC9c8aarDwQVwCt1etYu2u",
+	"nu1YSV4YPBOwztwK0hvQSZIk/wcAAP//6jEIQ085AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

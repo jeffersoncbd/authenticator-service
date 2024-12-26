@@ -217,6 +217,16 @@ components:
         - name
         - applicationId
       additionalProperties: false
+    UpdatedGroup:
+      type: object
+      properties:
+        newName:
+          type: string
+          x-go-extra-tags:
+            validate: required,min=3
+      required:
+        - newName
+      additionalProperties: false
     Group:
       type: object
       properties:
@@ -445,6 +455,50 @@ paths:
           $ref: "#/components/responses/500"
 
   /applications/{application_id}/groups/{group_id}:
+    patch:
+      operationId: RenameGroup
+      security:
+        - bearerAuth: []
+      summary: Renomeia o grupo de permissões de uma aplicação
+      tags:
+        - groups
+      parameters:
+        - in: path
+          name: application_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+        - in: path
+          name: group_id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatedGroup"
+      responses:
+        "200":
+          description: Grupo atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+
     delete:
       operationId: DeleteGroup
       security:

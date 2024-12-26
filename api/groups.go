@@ -89,6 +89,48 @@ func (api API) GroupsList(w http.ResponseWriter, r *http.Request, applicationId 
 	return spec.GroupsListJSON200Response(groups)
 }
 
+// Renomeia o grupo de permissões de uma aplicação
+// (PATCH /applications/{application_id}/groups/{group_id})
+func (api API) RenameGroup(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *spec.Response {
+	// Verifica se requisição possui a permissão necessária
+	if err := utils.CheckPermissions(r.Context(), groupsIdentifier, utils.KeyToWrite); err != nil {
+		return spec.RenameGroupJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+
+	// Valida UUID da aplicação
+	applicationUUID, err := uuid.Parse(applicationID)
+	if err != nil {
+		return spec.RenameGroupJSON400Response(spec.Error{Feedback: utils.INVALID_APPLICATION_ID + err.Error()})
+	}
+	// Valida UUID do grupo
+	groupUUID, err := uuid.Parse(groupID)
+	if err != nil {
+		return spec.RenameGroupJSON400Response(spec.Error{Feedback: utils.INVALID_GROUP_ID + err.Error()})
+	}
+
+	// Decodifica e valida os novos dados do grupo
+	var updatedGroup spec.UpdatedGroup
+	if err := json.NewDecoder(r.Body).Decode(&updatedGroup); err != nil {
+		return spec.RenameGroupJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
+	}
+	if err := api.validator.validate.Struct(updatedGroup); err != nil {
+		return spec.RenameGroupJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+	}
+
+	err = api.store.RenameGroup(r.Context(), postgresql.RenameGroupParams{
+		ID:          groupUUID,
+    ApplicationID: applicationUUID,
+    Name:        updatedGroup.NewName,
+	})
+
+	if err != nil {
+		api.logger.Error("Falha ao tentar renomear grupo da aplicação", zap.Error(err))
+		return spec.RenameGroupJSON500Response(spec.InternalServerError{Feedback: utils.INTERNAL_SERVER_ERROR})
+	}
+
+	return spec.RenameGroupJSON200Response(spec.BasicResponse{Feedback: "grupo renomeado com sucesso"})
+}
+
 // Deleta um grupo de permissões de uma aplicação
 // (DELETE /applications/{application_id}/groups/{group_id})
 func (api API) DeleteGroup(w http.ResponseWriter, r *http.Request, applicationID string, groupID string) *spec.Response {

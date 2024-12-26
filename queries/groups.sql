@@ -19,6 +19,13 @@ INSERT INTO groups
     ( $1, $2, $3 )
 RETURNING "id";
 
+-- name: RenameGroup :exec
+UPDATE groups
+SET
+    "name" = $3
+WHERE
+    id = $1 AND application_id = $2;
+
 -- name: DeleteGroup :exec
 DELETE FROM groups
 WHERE

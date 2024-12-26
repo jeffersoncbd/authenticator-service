@@ -118,3 +118,22 @@ func (q *Queries) ListGrousByApplicationId(ctx context.Context, applicationID uu
 	}
 	return items, nil
 }
+
+const renameGroup = `-- name: RenameGroup :exec
+UPDATE groups
+SET
+    "name" = $3
+WHERE
+    id = $1 AND application_id = $2
+`
+
+type RenameGroupParams struct {
+	ID            uuid.UUID
+	ApplicationID uuid.UUID
+	Name          string
+}
+
+func (q *Queries) RenameGroup(ctx context.Context, arg RenameGroupParams) error {
+	_, err := q.db.Exec(ctx, renameGroup, arg.ID, arg.ApplicationID, arg.Name)
+	return err
+}
