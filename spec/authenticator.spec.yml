@@ -205,6 +205,16 @@ components:
         - id
         - name
       additionalProperties: false
+    UpdatedApplication:
+      type: object
+      properties:
+        newName:
+          type: string
+          x-go-extra-tags:
+            validate: required,min=3
+      required:
+        - newName
+      additionalProperties: false
 
     NewGroup:
       type: object
@@ -379,6 +389,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Application"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+    patch:
+      operationId: RenameApplication
+      security:
+        - bearerAuth: []
+      summary: Renomeia uma aplicação
+      tags:
+        - applications
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          x-go-extra-tags:
+            validate: required,uuid
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatedApplication"
+      responses:
+        "200":
+          description: Aplicação atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasicResponse"
         "400":
           $ref: "#/components/responses/400"
         "401":

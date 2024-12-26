@@ -79,3 +79,21 @@ func (q *Queries) ListApplicaions(ctx context.Context) ([]ListApplicaionsRow, er
 	}
 	return items, nil
 }
+
+const renameApplication = `-- name: RenameApplication :exec
+UPDATE applications
+SET
+    "name" = $2
+WHERE
+    id = $1
+`
+
+type RenameApplicationParams struct {
+	ID   uuid.UUID
+	Name string
+}
+
+func (q *Queries) RenameApplication(ctx context.Context, arg RenameApplicationParams) error {
+	_, err := q.db.Exec(ctx, renameApplication, arg.ID, arg.Name)
+	return err
+}

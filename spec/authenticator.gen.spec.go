@@ -114,6 +114,11 @@ type Unauthorized struct {
 	Feedback string `json:"feedback"`
 }
 
+// UpdatedApplication defines model for UpdatedApplication.
+type UpdatedApplication struct {
+	NewName string `json:"newName" validate:"required,min=3"`
+}
+
 // UpdatedGroup defines model for UpdatedGroup.
 type UpdatedGroup struct {
 	NewName string `json:"newName" validate:"required,min=3"`
@@ -193,6 +198,9 @@ type AddPermissionJSONBody Permission
 // UpdatePermissionJSONBody defines parameters for UpdatePermission.
 type UpdatePermissionJSONBody Permission
 
+// RenameApplicationJSONBody defines parameters for RenameApplication.
+type RenameApplicationJSONBody UpdatedApplication
+
 // NewGroupJSONBody defines parameters for NewGroup.
 type NewGroupJSONBody NewGroup
 
@@ -234,6 +242,14 @@ type UpdatePermissionJSONRequestBody UpdatePermissionJSONBody
 
 // Bind implements render.Binder.
 func (UpdatePermissionJSONRequestBody) Bind(*http.Request) error {
+	return nil
+}
+
+// RenameApplicationJSONRequestBody defines body for RenameApplication for application/json ContentType.
+type RenameApplicationJSONRequestBody RenameApplicationJSONBody
+
+// Bind implements render.Binder.
+func (RenameApplicationJSONRequestBody) Bind(*http.Request) error {
 	return nil
 }
 
@@ -620,6 +636,46 @@ func FindApplicationByIDJSON500Response(body InternalServerError) *Response {
 	}
 }
 
+// RenameApplicationJSON200Response is a constructor method for a RenameApplication response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameApplicationJSON200Response(body BasicResponse) *Response {
+	return &Response{
+		body:        body,
+		Code:        200,
+		contentType: "application/json",
+	}
+}
+
+// RenameApplicationJSON400Response is a constructor method for a RenameApplication response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameApplicationJSON400Response(body Error) *Response {
+	return &Response{
+		body:        body,
+		Code:        400,
+		contentType: "application/json",
+	}
+}
+
+// RenameApplicationJSON401Response is a constructor method for a RenameApplication response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameApplicationJSON401Response(body Unauthorized) *Response {
+	return &Response{
+		body:        body,
+		Code:        401,
+		contentType: "application/json",
+	}
+}
+
+// RenameApplicationJSON500Response is a constructor method for a RenameApplication response.
+// A *Response is returned with the configured status code and content type from the spec.
+func RenameApplicationJSON500Response(body InternalServerError) *Response {
+	return &Response{
+		body:        body,
+		Code:        500,
+		contentType: "application/json",
+	}
+}
+
 // GroupsListJSON200Response is a constructor method for a GroupsList response.
 // A *Response is returned with the configured status code and content type from the spec.
 func GroupsListJSON200Response(body []Group) *Response {
@@ -886,6 +942,9 @@ type ServerInterface interface {
 	// Todas as informações de uma aplicação
 	// (GET /applications/{id})
 	FindApplicationByID(w http.ResponseWriter, r *http.Request, id string) *Response
+	// Renomeia uma aplicação
+	// (PATCH /applications/{id})
+	RenameApplication(w http.ResponseWriter, r *http.Request, id string) *Response
 	// Lista os grupos de permissões de uma aplicação
 	// (GET /applications/{id}/groups)
 	GroupsList(w http.ResponseWriter, r *http.Request, id string) *Response
@@ -1164,6 +1223,34 @@ func (siw *ServerInterfaceWrapper) FindApplicationByID(w http.ResponseWriter, r 
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := siw.Handler.FindApplicationByID(w, r, id)
+		if resp != nil {
+			if resp.body != nil {
+				render.Render(w, r, resp)
+			} else {
+				w.WriteHeader(resp.Code)
+			}
+		}
+	})
+
+	handler(w, r.WithContext(ctx))
+}
+
+// RenameApplication operation middleware
+func (siw *ServerInterfaceWrapper) RenameApplication(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	if err := runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id); err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{err, "id"})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{""})
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := siw.Handler.RenameApplication(w, r, id)
 		if resp != nil {
 			if resp.body != nil {
 				render.Render(w, r, resp)
@@ -1465,6 +1552,7 @@ func Handler(si ServerInterface, opts ...ServerOption) http.Handler {
 		r.Delete("/applications/{application_id}/groups/{group_id}/permissions/{permission_key}", wrapper.DeletePermission)
 		r.Put("/applications/{application_id}/groups/{group_id}/permissions/{permission_key}", wrapper.UpdatePermission)
 		r.Get("/applications/{id}", wrapper.FindApplicationByID)
+		r.Patch("/applications/{id}", wrapper.RenameApplication)
 		r.Get("/applications/{id}/groups", wrapper.GroupsList)
 		r.Post("/applications/{id}/groups", wrapper.NewGroup)
 		r.Get("/applications/{id}/users", wrapper.UsersList)
@@ -1496,34 +1584,35 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"//9LP0+dtjwAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

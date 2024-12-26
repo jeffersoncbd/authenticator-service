@@ -16,3 +16,10 @@ WHERE
 INSERT INTO applications
     ( "name" ) VALUES ( $1 )
 RETURNING "id";
+
+-- name: RenameApplication :exec
+UPDATE applications
+SET
+    "name" = $2
+WHERE
+    id = $1;

@@ -1,6 +1,7 @@
 package api
 
 import (
+	postgresql "authenticator/interfaces"
 	"authenticator/spec"
 	"authenticator/utils"
 	"encoding/json"
@@ -108,3 +109,42 @@ func (api API) NewApplication(w http.ResponseWriter, r *http.Request) *spec.Resp
 
 	return spec.NewApplicationJSON201Response(spec.BasicCreationResponse{Feedback: "aplicação cadastrada", ID: id.String()})
 }
+
+// Renomeia uma aplicação
+// (PATCH /applications/{id})
+func (api API) RenameApplication(w http.ResponseWriter, r *http.Request, id string) *spec.Response {
+	// Verifica se requisição possui a permissão necessária
+	if err := utils.CheckPermissions(r.Context(), applicationsIdentifier, utils.KeyToWrite); err != nil {
+		return spec.RenameApplicationJSON401Response(spec.Unauthorized{Feedback: err.Error()})
+	}
+
+	// Valida UUID
+	applicationUUID, err := uuid.Parse(id)
+	if err != nil {
+		return spec.RenameApplicationJSON400Response(spec.Error{Feedback: utils.INVALID_APPLICATION_ID + err.Error()})
+	}
+
+	// Decodifica body e valida dados
+	var updatedApplication spec.UpdatedApplication
+	err = json.NewDecoder(r.Body).Decode(&updatedApplication)
+	if err != nil {
+		return spec.RenameApplicationJSON400Response(spec.Error{Feedback: "Erro de decodificação: " + err.Error()})
+	}
+	if err := api.validator.validate.Struct(updatedApplication); err != nil {
+		return spec.RenameApplicationJSON400Response(spec.Error{Feedback: "Dados inválidos: " + api.validator.Translate(err)})
+	}
+
+	// Renomeia aplicação no banco de dados e trata possíveis erros
+	err = api.store.RenameApplication(r.Context(), postgresql.RenameApplicationParams{
+		ID:  	applicationUUID,
+		Name: updatedApplication.NewName,
+	})
+	if err != nil {
+		api.logger.Error("Falha ao renomear aplicação", zap.Error(err), zap.String("ID", applicationUUID.String()))
+		return spec.RenameApplicationJSON500Response(spec.InternalServerError{Feedback: utils.INTERNAL_SERVER_ERROR})
+	}
+
+	return spec.RenameApplicationJSON200Response(spec.BasicResponse{Feedback: "aplicação renomeada"})
+}
+
+
